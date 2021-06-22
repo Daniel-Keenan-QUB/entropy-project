@@ -41,7 +41,7 @@ public class EntropyComputer {
 	public EntropyComputer(String repositoryPath, String branchName) {
 		this.repository = convertToRepository(repositoryPath);
 		this.branchName = branchName;
-		checkout(branchName);
+		checkOut(branchName);
 	}
 
 	/**
@@ -127,7 +127,7 @@ public class EntropyComputer {
 	 *
 	 * @param target the branch name or commit ID
 	 */
-	private void checkout(String target) {
+	private void checkOut(String target) {
 		try {
 			new Git(repository).checkout().setName(target).call();
 		} catch (Exception exception) {
@@ -145,7 +145,7 @@ public class EntropyComputer {
 	 */
 	private int countLinesInSystem(String commitId) {
 		try {
-			checkout(commitId);
+			checkOut(commitId);
 			RevCommit commit = convertToCommit(commitId);
 			TreeWalk treeWalk = new TreeWalk(repository);
 			treeWalk.addTree(commit.getTree());
@@ -167,7 +167,7 @@ public class EntropyComputer {
 			System.exit(1);
 			return -1;
 		} finally {
-			checkout(branchName);
+			checkOut(branchName);
 		}
 	}
 
@@ -286,6 +286,7 @@ public class EntropyComputer {
 
 	/**
 	 * Creates and configures a diff formatter
+	 *
 	 * @return the diff formatter
 	 */
 	private DiffFormatter diffFormatter() {

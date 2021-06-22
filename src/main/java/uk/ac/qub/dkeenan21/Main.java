@@ -1,6 +1,8 @@
 package uk.ac.qub.dkeenan21;
 
-import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.varia.NullAppender;
+
+import static org.apache.log4j.LogManager.getRootLogger;
 
 public class Main {
 	private static final String REPOSITORY_PATH = "../refactoring-toy-example";
@@ -9,7 +11,7 @@ public class Main {
 	private static final String END_COMMIT_ID = "70b71b7fd3c5973511904c468e464d4910597928";
 
 	public static void main(String[] args) {
-		BasicConfigurator.configure();
+		getRootLogger().addAppender(new NullAppender()); // disable log4j output from JGit library
 		EntropyComputer entropyComputer = new EntropyComputer(REPOSITORY_PATH, BRANCH_NAME);
 		double entropy = entropyComputer.computeEntropy(START_COMMIT_ID, END_COMMIT_ID);
 		System.out.println("-----------------------------------------------------------");
