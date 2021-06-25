@@ -49,9 +49,10 @@ public class EntropyComputer {
 	 *
 	 * @param startCommitId the ID of the less recent commit
 	 * @param endCommitId the ID of the more recent commit
+	 * @param normalise whether entropy should be normalised according to the number of lines in the system
 	 * @return the entropy value
 	 */
-	public double computeEntropy(String startCommitId, String endCommitId) {
+	public double computeEntropy(String startCommitId, String endCommitId, boolean normalise) {
 		int numberOfLinesInSystem = countLinesInSystem(endCommitId);
 		int numberOfLinesInSystemChanged = 0;
 		Iterable<RevCommit> commits = extractCommits(startCommitId, endCommitId);
@@ -78,12 +79,12 @@ public class EntropyComputer {
 		for (Map.Entry<String,Integer> entry : changesMap.entrySet()) {
 			System.out.println("File change summary: " + entry.getKey() + " (" + entry.getValue() + " lines changed)");
 			if (entry.getValue() <= 0) {
-				// todo: values of 0 are caused by '0 lines changed' occurrences, such as JAR files
-				// todo: these values must be excluded to avoid a final result of 'NaN'
+				// '0 lines changed' occurrences, caused by files such as JARs, must be ignored
 				continue;
 			}
+			int logBase = normalise ? numberOfLinesInSystem : 2;
 			double changedLineRatio = (double) entry.getValue() / numberOfLinesInSystemChanged;
-			entropy -= changedLineRatio * Math.log(changedLineRatio) / Math.log(numberOfLinesInSystem);
+			entropy -= changedLineRatio * Math.log(changedLineRatio) / Math.log(logBase);
 		}
 		System.out.println("-----------------------------------------------------------");
 		System.out.println("Number of lines in system changed: " + numberOfLinesInSystemChanged);
@@ -238,8 +239,8 @@ public class EntropyComputer {
 	private Iterable<RevCommit> extractCommits(Date startTime, Date endTime) {
 		try {
 			ObjectId branchObjectId = repository.findRef(branchName).getObjectId();
-			RevFilter dateRangeFilter = CommitTimeRevFilter.between(startTime, endTime);
-			Iterable<RevCommit> commits = new Git(repository).log().add(branchObjectId).setRevFilter(dateRangeFilter).call();
+			RevFilter timeRangeFilter = CommitTimeRevFilter.between(startTime, endTime);
+			Iterable<RevCommit> commits = new Git(repository).log().add(branchObjectId).setRevFilter(timeRangeFilter).call();
 			List<RevCommit> commitsExcludingMergeCommits = new ArrayList<>();
 			for (RevCommit commit : commits) {
 				if (commit.getParentCount() < 2) {
