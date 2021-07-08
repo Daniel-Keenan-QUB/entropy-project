@@ -24,6 +24,7 @@ import java.io.FileReader;
 import java.util.*;
 
 import static java.lang.Math.max;
+import static org.apache.commons.io.FilenameUtils.getExtension;
 
 /**
  * Computes source code change entropy on a Git repository branch
@@ -49,10 +50,11 @@ public class EntropyComputer {
 	 *
 	 * @param startCommitId the ID of the less recent commit
 	 * @param endCommitId the ID of the more recent commit
+	 * @param fileTypes the file extensions (without the dot) of the only file types to be considered
 	 * @param normalise whether entropy should be normalised according to the number of lines in the system
 	 * @return the entropy value
 	 */
-	public double computeEntropy(String startCommitId, String endCommitId, boolean normalise) {
+	public double computeEntropy(String startCommitId, String endCommitId, List<String> fileTypes, boolean normalise) {
 		int numberOfLinesInSystem = countLinesInSystem(endCommitId);
 		int numberOfLinesInSystemChanged = 0;
 		Iterable<RevCommit> commits = extractCommits(startCommitId, endCommitId);
@@ -63,6 +65,10 @@ public class EntropyComputer {
 			Iterable<DiffEntry> diffEntries = extractDiffEntries(commit);
 			for (DiffEntry diffEntry : diffEntries) {
 				String filename = diffEntry.getOldPath().equals("/dev/null") ? diffEntry.getNewPath() : diffEntry.getOldPath();
+				String extension = getExtension(filename);
+				if (!fileTypes.contains(extension)) {
+					continue;
+				}
 				int numberOfLinesInFileChanged = countLinesChanged(diffEntry);
 				numberOfLinesInSystemChanged += numberOfLinesInFileChanged;
 				System.out.println("File change: " + filename + " (" + numberOfLinesInFileChanged + " lines)");
@@ -139,7 +145,7 @@ public class EntropyComputer {
 	}
 
 	/**
-	 * Counts the number of lines in the system as of a commit
+	 * Counts the lines in the system as of a commit
 	 *
 	 * @param commitId the commit ID
 	 * @return the number of lines in the system
@@ -298,7 +304,7 @@ public class EntropyComputer {
 	}
 
 	/**
-	 * Counts the number of lines changed in a diff entry (change to file)
+	 * Counts the lines changed in a diff entry (change to file)
 	 *
 	 * @param diffEntry the diff entry
 	 * @return the number of lines changed in the diff entry
