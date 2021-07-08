@@ -1,7 +1,9 @@
 package uk.ac.qub.dkeenan21;
 
 import org.apache.log4j.varia.NullAppender;
+import org.tinylog.Logger;
 
+import java.text.DecimalFormat;
 import java.util.List;
 
 import static java.util.Arrays.asList;
@@ -19,9 +21,10 @@ public class Main {
 		getRootLogger().addAppender(new NullAppender()); // disable log4j output from JGit library
 		EntropyComputer entropyComputer = new EntropyComputer(REPOSITORY_PATH, BRANCH_NAME);
 		List<String> fileTypes = asList(FILE_TYPES);
-		System.out.println("-----------------------------------------------------------");
 		double entropy = entropyComputer.computeEntropy(START_COMMIT_ID, END_COMMIT_ID, fileTypes, NORMALISE);
-		System.out.println("-----------------------------------------------------------");
-		System.out.println("Entropy = " + entropy);
+		DecimalFormat decimalFormat = new DecimalFormat();
+		decimalFormat.setMinimumFractionDigits(4);
+		decimalFormat.setMaximumFractionDigits(4);
+		Logger.info("Entropy = " + decimalFormat.format(entropy));
 	}
 }

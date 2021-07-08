@@ -12,8 +12,10 @@ repositories {
 dependencies {
     implementation 'com.github.tsantalis:refactoring-miner:2.1.0'
     implementation 'org.eclipse.jgit:org.eclipse.jgit:5.12.0.202106070339-r'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+    implementation 'org.tinylog:tinylog-api:2.3.2'
+    implementation 'org.tinylog:tinylog-impl:2.3.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
 }
 
 test {

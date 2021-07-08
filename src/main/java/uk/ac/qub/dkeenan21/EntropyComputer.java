@@ -17,6 +17,7 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.EmptyTreeIterator;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.util.io.DisabledOutputStream;
+import org.tinylog.Logger;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -61,7 +62,7 @@ public class EntropyComputer {
 		Map<String,Integer> changesMap = new HashMap<>();
 
 		for (RevCommit commit : commits) {
-			System.out.println("Commit: " + commit.getName());
+			Logger.debug("Changes in commit: " + commit.getName());
 			Iterable<DiffEntry> diffEntries = extractDiffEntries(commit);
 			for (DiffEntry diffEntry : diffEntries) {
 				String filename = diffEntry.getOldPath().equals("/dev/null") ? diffEntry.getNewPath() : diffEntry.getOldPath();
@@ -71,19 +72,19 @@ public class EntropyComputer {
 				}
 				int numberOfLinesInFileChanged = countLinesChanged(diffEntry);
 				numberOfLinesInSystemChanged += numberOfLinesInFileChanged;
-				System.out.println("File change: " + filename + " (" + numberOfLinesInFileChanged + " lines)");
+				Logger.debug(filename + " (" + numberOfLinesInFileChanged + " lines)");
 				if (changesMap.containsKey(filename)) {
 					changesMap.put(filename, changesMap.get(filename) + numberOfLinesInFileChanged);
 				} else {
 					changesMap.put(filename, numberOfLinesInFileChanged);
 				}
 			}
-			System.out.println("-----------------------------------------------------------");
 		}
 
 		double entropy = 0.0;
+		Logger.debug("Summary of changes over all commits in range:");
 		for (Map.Entry<String,Integer> entry : changesMap.entrySet()) {
-			System.out.println("File change summary: " + entry.getKey() + " (" + entry.getValue() + " lines changed)");
+			Logger.debug(entry.getKey() + " (" + entry.getValue() + " lines changed)");
 			if (entry.getValue() <= 0) {
 				// '0 lines changed' occurrences, caused by files such as JARs, must be ignored
 				continue;
@@ -92,15 +93,14 @@ public class EntropyComputer {
 			double changedLineRatio = (double) entry.getValue() / numberOfLinesInSystemChanged;
 			entropy -= changedLineRatio * Math.log(changedLineRatio) / Math.log(logBase);
 		}
-		System.out.println("-----------------------------------------------------------");
-		System.out.println("Number of lines in system changed: " + numberOfLinesInSystemChanged);
-		System.out.println("Number of lines in system: " + numberOfLinesInSystem);
+		Logger.debug("Total number of lines in system changed: " + numberOfLinesInSystemChanged);
+		Logger.debug("Total number of lines in system: " + numberOfLinesInSystem);
 		return entropy;
 	}
 
 	/**
 	 * Converts a repository path to a corresponding repository representation
-	 * Note: the metadata (.git) directory must be at the root of the repository
+	 * Note: the Git metadata (.git) directory must be at the root of the repository
 	 *
 	 * @param repositoryPath the repository path
 	 * @return the repository
@@ -117,13 +117,13 @@ public class EntropyComputer {
 						.setMustExist(true)
 						.build();
 			} catch (Exception exception) {
-				System.err.println("An error occurred");
+				Logger.error("An error occurred");
 				exception.printStackTrace();
 				System.exit(1);
 				return null;
 			}
 		} else {
-			System.err.printf("Repository not found at: %s%n", repositoryPath);
+			Logger.error("Repository not found at: " + repositoryPath);
 			System.exit(1);
 			return null;
 		}
@@ -138,7 +138,7 @@ public class EntropyComputer {
 		try {
 			new Git(repository).checkout().setName(target).call();
 		} catch (Exception exception) {
-			System.err.println("An error occurred");
+			Logger.error("An error occurred");
 			exception.printStackTrace();
 			System.exit(1);
 		}
@@ -169,7 +169,7 @@ public class EntropyComputer {
 			}
 			return numberOfLinesOfCodeInSystem;
 		} catch (Exception exception) {
-			System.err.println("An error occurred");
+			Logger.error("An error occurred");
 			exception.printStackTrace();
 			System.exit(1);
 			return -1;
@@ -190,7 +190,7 @@ public class EntropyComputer {
 			RevWalk revWalk = new RevWalk(repository);
 			return revWalk.parseCommit(commitIdObject);
 		} catch (Exception exception) {
-			System.err.println("An error occurred");
+			Logger.error("An error occurred");
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
@@ -213,7 +213,7 @@ public class EntropyComputer {
 			bufferedReader.close();
 			return numberOfLinesInFile;
 		} catch (Exception exception) {
-			System.err.println("An error occurred");
+			Logger.error("An error occurred");
 			exception.printStackTrace();
 			System.exit(1);
 			return -1;
@@ -255,7 +255,7 @@ public class EntropyComputer {
 			}
 			return commitsExcludingMergeCommits;
 		} catch (Exception exception) {
-			System.err.println("An error occurred");
+			Logger.error("An error occurred");
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
@@ -284,7 +284,7 @@ public class EntropyComputer {
 			}
 			return diffFormatter().scan(parentCommitTreeIterator, commitTreeIterator);
 		} catch (Exception exception) {
-			System.err.println("An error occurred");
+			Logger.error("An error occurred");
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
@@ -325,7 +325,7 @@ public class EntropyComputer {
 			}
 			return numberOfLinesChanged;
 		} catch (Exception exception) {
-			System.err.println("An error occurred");
+			Logger.error("An error occurred");
 			exception.printStackTrace();
 			System.exit(1);
 			return -1;
