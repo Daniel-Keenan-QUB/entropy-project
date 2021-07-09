@@ -1,0 +1,15 @@
+image: gradle:alpine
+
+stages:
+  - build
+  - test
+
+build:
+  stage: build
+  script:
+    - ./gradlew assemble
+
+test:
+  stage: test
+  script:
+    - ./gradlew check
