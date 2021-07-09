@@ -47,24 +47,47 @@ public class EntropyComputer {
 	}
 
 	/**
-	 * Computes the entropy across a series of commits (inclusive)
+	 * Computes the entropy between two commits (inclusive)
 	 *
-	 * @param startCommitId the ID of the first (least recent) commit of the series
-	 * @param endCommitId the ID of the last (most recent) commit of the series
+	 * @param startCommitId the ID of the less recent commit
+	 * @param endCommitId the ID of the more recent commit
 	 * @param fileTypes the file extensions (without the dot) of the only file types to be considered
 	 * @param normalise whether entropy should be normalised according to the number of lines in the system
 	 * @return the entropy value
 	 */
 	public double computeEntropy(String startCommitId, String endCommitId, List<String> fileTypes, boolean normalise) {
-		int numberOfLinesInSystem = countLinesInSystem(endCommitId);
-		Iterable<RevCommit> commits = extractNonMergeCommits(startCommitId, endCommitId);
+		RevCommit startCommit = convertToCommit(startCommitId);
+		RevCommit endCommit = convertToCommit(endCommitId);
+		Date startCommitTime = new Date((long) startCommit.getCommitTime() * 1000);
+		Date endCommitTime = new Date((long) endCommit.getCommitTime() * 1000);
+		return computeEntropy(startCommitTime, endCommitTime, fileTypes, normalise);
+	}
+
+	/**
+	 * Computes the entropy between two instants in time (inclusive)
+	 *
+	 * @param startTime the less recent instant in time
+	 * @param endTime the more recent instant in time
+	 * @param fileTypes the file extensions (without the dot) of the only file types to be considered
+	 * @param normalise whether entropy should be normalised according to the number of lines in the system
+	 * @return the entropy value
+	 */
+	public double computeEntropy(Date startTime, Date endTime, List<String> fileTypes, boolean normalise) {
+		Iterable<RevCommit> commits = extractNonMergeCommits(startTime, endTime);
+		RevCommit latestCommit = extractLatestCommit(commits);
+		if (latestCommit == null) {
+			Logger.error("No commits detected between start time " + startTime + " and end time " + endTime);
+			System.exit(1);
+		}
+		String latestCommitId = latestCommit.getName();
+		int numberOfLinesInSystem = countLinesInSystem(latestCommitId, fileTypes);
 		Map<String,Integer> changesMap = countChangedLinesPerChangedFile(commits, fileTypes);
 		int numberOfChangedLinesInSystem = changesMap.values().stream().reduce(0, Integer::sum);
 
 		double entropy = 0.0;
-		Logger.debug("Summary of changes over all commits in series:");
+		Logger.debug("Summary of changes over all commits in series");
 		for (Map.Entry<String,Integer> entry : changesMap.entrySet()) {
-			Logger.debug(entry.getKey() + " (" + entry.getValue() + " lines changed)");
+			Logger.debug(entry.getKey() + " (" + entry.getValue() + " lines)");
 			if (entry.getValue() <= 0) {
 				// '0 lines changed' occurrences, caused by files such as binaries, must be ignored
 				continue;
@@ -110,21 +133,6 @@ public class EntropyComputer {
 	}
 
 	/**
-	 * Extracts the non-merge commits between two commits (inclusive)
-	 *
-	 * @param startCommitId the ID of the less recent commit
-	 * @param endCommitId the ID of the more recent commit
-	 * @return the extracted commits
-	 */
-	private Iterable<RevCommit> extractNonMergeCommits(String startCommitId, String endCommitId) {
-		RevCommit startCommit = convertToCommit(startCommitId);
-		RevCommit endCommit = convertToCommit(endCommitId);
-		Date startCommitTime = new Date((long) startCommit.getCommitTime() * 1000);
-		Date endCommitTime = new Date((long) endCommit.getCommitTime() * 1000);
-		return extractNonMergeCommits(startCommitTime, endCommitTime);
-	}
-
-	/**
 	 * Extracts the non-merge commits between two instants in time (inclusive)
 	 *
 	 * @param startTime the less recent instant in time
@@ -150,6 +158,24 @@ public class EntropyComputer {
 			System.exit(1);
 			return null;
 		}
+	}
+
+	/**
+	 * Extracts the latest commit (based on timestamp) from a set of commits
+	 *
+	 * @param commits the set of commits
+	 * @return the latest commit
+	 */
+	private RevCommit extractLatestCommit(Iterable<RevCommit> commits) {
+		int latestTimestamp = 0;
+		RevCommit latestCommit = null;
+		for (RevCommit commit : commits) {
+			if (commit.getCommitTime() > latestTimestamp) {
+				latestTimestamp = commit.getCommitTime();
+				latestCommit = commit;
+			}
+		}
+		return latestCommit;
 	}
 
 	/**
@@ -265,7 +291,7 @@ public class EntropyComputer {
 			RevWalk revWalk = new RevWalk(repository);
 			return revWalk.parseCommit(commitIdObject);
 		} catch (Exception exception) {
-			Logger.error("An error occurred");
+			Logger.error("Could not find commit with ID: " + commitId);
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
@@ -315,9 +341,10 @@ public class EntropyComputer {
 	 * Note: this method will check out the given commit and check out the original branch again when finished
 	 *
 	 * @param commitId the commit ID
+	 * @param fileTypes the file extensions (without the dot) of the only file types to be considered
 	 * @return the number of lines in the system
 	 */
-	private int countLinesInSystem(String commitId) {
+	private int countLinesInSystem(String commitId, List<String> fileTypes) {
 		try {
 			checkOut(commitId);
 			RevCommit commit = convertToCommit(commitId);
@@ -330,6 +357,10 @@ public class EntropyComputer {
 				if (treeWalk.isSubtree()) {
 					treeWalk.enterSubtree();
 				} else {
+					String extension = getExtension(treeWalk.getNameString());
+					if (!fileTypes.contains(extension)) {
+						continue;
+					}
 					String repositoryDirectory = repository.getDirectory() + "/../";
 					numberOfLinesOfCodeInSystem += countLinesInFile(repositoryDirectory + treeWalk.getPathString());
 				}
