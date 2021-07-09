@@ -22,13 +22,14 @@ import org.tinylog.Logger;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.text.DecimalFormat;
 import java.util.*;
 
 import static java.lang.Math.max;
 import static org.apache.commons.io.FilenameUtils.getExtension;
 
 /**
- * Computes source code change entropy on a Git repository branch
+ * Computes source code change entropy on the version history of a Git repository
  */
 public class EntropyComputer {
 	private final Repository repository;
@@ -99,6 +100,7 @@ public class EntropyComputer {
 
 		Logger.debug("Total number of lines in system changed: " + numberOfChangedLinesInSystem);
 		Logger.debug("Total number of lines in system: " + numberOfLinesInSystem);
+		Logger.info("Entropy = " + formatEntropyValue(entropy));
 		return entropy;
 	}
 
@@ -267,7 +269,7 @@ public class EntropyComputer {
 						.setMustExist(true)
 						.build();
 			} catch (Exception exception) {
-				Logger.error("An error occurred");
+				Logger.error("An error occurred while building the repository representation");
 				exception.printStackTrace();
 				System.exit(1);
 				return null;
@@ -374,5 +376,18 @@ public class EntropyComputer {
 		} finally {
 			checkOut(branchName);
 		}
+	}
+
+	/**
+	 * Obtains a string representation of the entropy value to two decimal places
+	 *
+	 * @param entropy the raw entropy value
+	 * @return a string representing the entropy value to two decimal places
+	 */
+	private String formatEntropyValue(double entropy) {
+		DecimalFormat decimalFormat = new DecimalFormat();
+		decimalFormat.setMinimumFractionDigits(2);
+		decimalFormat.setMaximumFractionDigits(2);
+		return decimalFormat.format(entropy);
 	}
 }
