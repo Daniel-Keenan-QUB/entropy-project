@@ -47,20 +47,47 @@ public class EntropyComputer {
 	}
 
 	/**
-	 * Computes the entropy between two commits (inclusive)
+	 * Computes the entropy across a series of commits (inclusive)
 	 *
-	 * @param startCommitId the ID of the less recent commit
-	 * @param endCommitId the ID of the more recent commit
+	 * @param startCommitId the ID of the first (least recent) commit of the series
+	 * @param endCommitId the ID of the last (most recent) commit of the series
 	 * @param fileTypes the file extensions (without the dot) of the only file types to be considered
 	 * @param normalise whether entropy should be normalised according to the number of lines in the system
 	 * @return the entropy value
 	 */
 	public double computeEntropy(String startCommitId, String endCommitId, List<String> fileTypes, boolean normalise) {
 		int numberOfLinesInSystem = countLinesInSystem(endCommitId);
-		int numberOfLinesInSystemChanged = 0;
-		Iterable<RevCommit> commits = extractCommits(startCommitId, endCommitId);
-		Map<String,Integer> changesMap = new HashMap<>();
+		Iterable<RevCommit> commits = extractNonMergeCommits(startCommitId, endCommitId);
+		Map<String,Integer> changesMap = countChangedLinesPerChangedFile(commits, fileTypes);
+		int numberOfChangedLinesInSystem = changesMap.values().stream().reduce(0, Integer::sum);
 
+		double entropy = 0.0;
+		Logger.debug("Summary of changes over all commits in series:");
+		for (Map.Entry<String,Integer> entry : changesMap.entrySet()) {
+			Logger.debug(entry.getKey() + " (" + entry.getValue() + " lines changed)");
+			if (entry.getValue() <= 0) {
+				// '0 lines changed' occurrences, caused by files such as binaries, must be ignored
+				continue;
+			}
+			int logBase = normalise ? numberOfLinesInSystem : 2;
+			double changedLineRatio = (double) entry.getValue() / numberOfChangedLinesInSystem;
+			entropy -= changedLineRatio * Math.log(changedLineRatio) / Math.log(logBase);
+		}
+
+		Logger.debug("Total number of lines in system changed: " + numberOfChangedLinesInSystem);
+		Logger.debug("Total number of lines in system: " + numberOfLinesInSystem);
+		return entropy;
+	}
+
+	/**
+	 * Counts the changed lines for each changed file across a set of commits
+	 *
+	 * @param commits the set of commits
+	 * @param fileTypes the file extensions (without the dot) of the only file types to be considered
+	 * @return a map containing key-value pairs of the form: changed file, total number of lines changed
+	 */
+	private Map<String,Integer> countChangedLinesPerChangedFile(Iterable<RevCommit> commits, List<String> fileTypes) {
+		Map<String,Integer> changesMap = new HashMap<>();
 		for (RevCommit commit : commits) {
 			Logger.debug("Changes in commit: " + commit.getName());
 			Iterable<DiffEntry> diffEntries = extractDiffEntries(commit);
@@ -70,32 +97,129 @@ public class EntropyComputer {
 				if (!fileTypes.contains(extension)) {
 					continue;
 				}
-				int numberOfLinesInFileChanged = countLinesChanged(diffEntry);
-				numberOfLinesInSystemChanged += numberOfLinesInFileChanged;
-				Logger.debug(filename + " (" + numberOfLinesInFileChanged + " lines)");
+				int numberOfChangedLinesInFile = countChangedLines(diffEntry);
+				Logger.debug(filename + " (" + numberOfChangedLinesInFile + " lines)");
 				if (changesMap.containsKey(filename)) {
-					changesMap.put(filename, changesMap.get(filename) + numberOfLinesInFileChanged);
+					changesMap.put(filename, changesMap.get(filename) + numberOfChangedLinesInFile);
 				} else {
-					changesMap.put(filename, numberOfLinesInFileChanged);
+					changesMap.put(filename, numberOfChangedLinesInFile);
 				}
 			}
 		}
+		return changesMap;
+	}
 
-		double entropy = 0.0;
-		Logger.debug("Summary of changes over all commits in range:");
-		for (Map.Entry<String,Integer> entry : changesMap.entrySet()) {
-			Logger.debug(entry.getKey() + " (" + entry.getValue() + " lines changed)");
-			if (entry.getValue() <= 0) {
-				// '0 lines changed' occurrences, caused by files such as JARs, must be ignored
-				continue;
+	/**
+	 * Extracts the non-merge commits between two commits (inclusive)
+	 *
+	 * @param startCommitId the ID of the less recent commit
+	 * @param endCommitId the ID of the more recent commit
+	 * @return the extracted commits
+	 */
+	private Iterable<RevCommit> extractNonMergeCommits(String startCommitId, String endCommitId) {
+		RevCommit startCommit = convertToCommit(startCommitId);
+		RevCommit endCommit = convertToCommit(endCommitId);
+		Date startCommitTime = new Date((long) startCommit.getCommitTime() * 1000);
+		Date endCommitTime = new Date((long) endCommit.getCommitTime() * 1000);
+		return extractNonMergeCommits(startCommitTime, endCommitTime);
+	}
+
+	/**
+	 * Extracts the non-merge commits between two instants in time (inclusive)
+	 *
+	 * @param startTime the less recent instant in time
+	 * @param endTime the more recent instant in time
+	 * @return the extracted commits
+	 */
+	private Iterable<RevCommit> extractNonMergeCommits(Date startTime, Date endTime) {
+		try {
+			ObjectId branchObjectId = repository.findRef(branchName).getObjectId();
+			RevFilter timeRangeFilter = CommitTimeRevFilter.between(startTime, endTime);
+			Iterable<RevCommit> commits = new Git(repository).log().add(branchObjectId).setRevFilter(timeRangeFilter).call();
+			List<RevCommit> nonMergeCommits = new ArrayList<>();
+			for (RevCommit commit : commits) {
+				// merge commits have two parents, so ignore commits satisfying this criterion
+				if (commit.getParentCount() < 2) {
+					nonMergeCommits.add(commit);
+				}
 			}
-			int logBase = normalise ? numberOfLinesInSystem : 2;
-			double changedLineRatio = (double) entry.getValue() / numberOfLinesInSystemChanged;
-			entropy -= changedLineRatio * Math.log(changedLineRatio) / Math.log(logBase);
+			return nonMergeCommits;
+		} catch (Exception exception) {
+			Logger.error("An error occurred");
+			exception.printStackTrace();
+			System.exit(1);
+			return null;
 		}
-		Logger.debug("Total number of lines in system changed: " + numberOfLinesInSystemChanged);
-		Logger.debug("Total number of lines in system: " + numberOfLinesInSystem);
-		return entropy;
+	}
+
+	/**
+	 * Extracts the diff entries (file changes) from a commit
+	 *
+	 * @param commit the commit
+	 * @return the diff entries
+	 */
+	private Iterable<DiffEntry> extractDiffEntries(RevCommit commit) {
+		try {
+			// extract the list of diff entries by comparing the commit tree with that of its parent
+			ObjectReader objectReader = repository.newObjectReader();
+			AbstractTreeIterator commitTreeIterator = new CanonicalTreeParser(null, objectReader, commit.getTree());
+			AbstractTreeIterator parentCommitTreeIterator;
+			if (commit.getParentCount() > 0) {
+				RevWalk revWalk = new RevWalk(repository);
+				RevCommit parentCommit = revWalk.parseCommit(commit.getParent(0).getId());
+				parentCommitTreeIterator = new CanonicalTreeParser(null, objectReader, parentCommit.getTree());
+			} else {
+				// this is the initial commit (no parent), so must compare with empty tree
+				parentCommitTreeIterator = new EmptyTreeIterator();
+			}
+			return diffFormatter().scan(parentCommitTreeIterator, commitTreeIterator);
+		} catch (Exception exception) {
+			Logger.error("An error occurred");
+			exception.printStackTrace();
+			System.exit(1);
+			return null;
+		}
+	}
+
+	/**
+	 * Counts the changed lines in a diff entry (file change)
+	 *
+	 * @param diffEntry the diff entry
+	 * @return the number of changed lines in the diff entry
+	 */
+	private int countChangedLines(DiffEntry diffEntry) {
+		try {
+			Iterable<Edit> edits = diffFormatter().toFileHeader(diffEntry).toEditList();
+			int numberOfChangedLines = 0;
+			// for each edit (changed region of a file)
+			for (Edit edit : edits) {
+				if (edit.getType() == Edit.Type.INSERT) {
+					numberOfChangedLines += edit.getLengthB();
+				} else if (edit.getType() == Edit.Type.REPLACE) {
+					numberOfChangedLines += max(edit.getLengthA(), edit.getLengthB());
+				} else if (edit.getType() == Edit.Type.DELETE) {
+					numberOfChangedLines += edit.getLengthA();
+				}
+			}
+			return numberOfChangedLines;
+		} catch (Exception exception) {
+			Logger.error("An error occurred");
+			exception.printStackTrace();
+			System.exit(1);
+			return -1;
+		}
+	}
+
+	/**
+	 * Creates and configures a diff formatter
+	 *
+	 * @return the diff formatter
+	 */
+	private DiffFormatter diffFormatter() {
+		DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
+		diffFormatter.setRepository(repository);
+		diffFormatter.setDetectRenames(true);
+		return diffFormatter;
 	}
 
 	/**
@@ -103,7 +227,7 @@ public class EntropyComputer {
 	 * Note: the Git metadata (.git) directory must be at the root of the repository
 	 *
 	 * @param repositoryPath the repository path
-	 * @return the repository
+	 * @return the repository representation
 	 */
 	private Repository convertToRepository(String repositoryPath) {
 		File repositoryDirectory = new File(repositoryPath);
@@ -130,6 +254,25 @@ public class EntropyComputer {
 	}
 
 	/**
+	 * Converts a commit ID to a corresponding commit object
+	 *
+	 * @param commitId the commit ID
+	 * @return the corresponding commit object
+	 */
+	private RevCommit convertToCommit(String commitId) {
+		try {
+			ObjectId commitIdObject = ObjectId.fromString(commitId);
+			RevWalk revWalk = new RevWalk(repository);
+			return revWalk.parseCommit(commitIdObject);
+		} catch (Exception exception) {
+			Logger.error("An error occurred");
+			exception.printStackTrace();
+			System.exit(1);
+			return null;
+		}
+	}
+
+	/**
 	 * Check out a branch or commit in the repository
 	 *
 	 * @param target the branch name or commit ID
@@ -145,7 +288,31 @@ public class EntropyComputer {
 	}
 
 	/**
+	 * Counts the lines in a file
+	 *
+	 * @param filePath the file path
+	 * @return the number of lines in the file
+	 */
+	private int countLinesInFile(String filePath) {
+		try {
+			BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath));
+			int numberOfLinesInFile = 0;
+			while (bufferedReader.readLine() != null) {
+				numberOfLinesInFile++;
+			}
+			bufferedReader.close();
+			return numberOfLinesInFile;
+		} catch (Exception exception) {
+			Logger.error("An error occurred");
+			exception.printStackTrace();
+			System.exit(1);
+			return -1;
+		}
+	}
+
+	/**
 	 * Counts the lines in the system as of a commit
+	 * Note: this method will check out the given commit and check out the original branch again when finished
 	 *
 	 * @param commitId the commit ID
 	 * @return the number of lines in the system
@@ -175,160 +342,6 @@ public class EntropyComputer {
 			return -1;
 		} finally {
 			checkOut(branchName);
-		}
-	}
-
-	/**
-	 * Converts a commit ID to a corresponding commit object
-	 *
-	 * @param commitId the commit ID
-	 * @return the corresponding commit object
-	 */
-	private RevCommit convertToCommit(String commitId) {
-		try {
-			ObjectId commitIdObject = ObjectId.fromString(commitId);
-			RevWalk revWalk = new RevWalk(repository);
-			return revWalk.parseCommit(commitIdObject);
-		} catch (Exception exception) {
-			Logger.error("An error occurred");
-			exception.printStackTrace();
-			System.exit(1);
-			return null;
-		}
-	}
-
-	/**
-	 * Counts the lines in a file
-	 *
-	 * @param filePath the file path
-	 * @return the number of lines in the file
-	 */
-	private int countLinesInFile(String filePath) {
-		try {
-			BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath));
-			int numberOfLinesInFile = 0;
-			while (bufferedReader.readLine() != null) {
-				numberOfLinesInFile++;
-			}
-			bufferedReader.close();
-			return numberOfLinesInFile;
-		} catch (Exception exception) {
-			Logger.error("An error occurred");
-			exception.printStackTrace();
-			System.exit(1);
-			return -1;
-		}
-	}
-
-	/**
-	 * Extracts the non-merge commits from a branch between two commits (inclusive)
-	 *
-	 * @param startCommitId the ID of the less recent commit
-	 * @param endCommitId the ID of the more recent commit
-	 * @return the extracted commits
-	 */
-	private Iterable<RevCommit> extractCommits(String startCommitId, String endCommitId) {
-		RevCommit startCommit = convertToCommit(startCommitId);
-		RevCommit endCommit = convertToCommit(endCommitId);
-		Date startCommitTime = new Date((long) startCommit.getCommitTime() * 1000);
-		Date endCommitTime = new Date((long) endCommit.getCommitTime() * 1000);
-		return extractCommits(startCommitTime, endCommitTime);
-	}
-
-	/**
-	 * Extracts the non-merge commits from a branch between two instants in time (inclusive)
-	 *
-	 * @param startTime the less recent instant in time
-	 * @param endTime the more recent instant in time
-	 * @return the extracted commits
-	 */
-	private Iterable<RevCommit> extractCommits(Date startTime, Date endTime) {
-		try {
-			ObjectId branchObjectId = repository.findRef(branchName).getObjectId();
-			RevFilter timeRangeFilter = CommitTimeRevFilter.between(startTime, endTime);
-			Iterable<RevCommit> commits = new Git(repository).log().add(branchObjectId).setRevFilter(timeRangeFilter).call();
-			List<RevCommit> commitsExcludingMergeCommits = new ArrayList<>();
-			for (RevCommit commit : commits) {
-				if (commit.getParentCount() < 2) {
-					commitsExcludingMergeCommits.add(commit);
-				}
-			}
-			return commitsExcludingMergeCommits;
-		} catch (Exception exception) {
-			Logger.error("An error occurred");
-			exception.printStackTrace();
-			System.exit(1);
-			return null;
-		}
-	}
-
-	/**
-	 * Extracts the diff entries (changes to files) from a commit
-	 *
-	 * @param commit the commit
-	 * @return the diff entries
-	 */
-	private Iterable<DiffEntry> extractDiffEntries(RevCommit commit) {
-		try {
-			// extract the list of diff entries by comparing the commit tree with that of its parent
-			ObjectReader objectReader = repository.newObjectReader();
-			AbstractTreeIterator commitTreeIterator = new CanonicalTreeParser(null, objectReader, commit.getTree());
-			AbstractTreeIterator parentCommitTreeIterator;
-			if (commit.getParentCount() > 0) {
-				RevWalk revWalk = new RevWalk(repository);
-				RevCommit parentCommit = revWalk.parseCommit(commit.getParent(0).getId());
-				parentCommitTreeIterator = new CanonicalTreeParser(null, objectReader, parentCommit.getTree());
-			} else {
-				// this is the initial commit (no parent), so must compare with empty tree
-				parentCommitTreeIterator = new EmptyTreeIterator();
-			}
-			return diffFormatter().scan(parentCommitTreeIterator, commitTreeIterator);
-		} catch (Exception exception) {
-			Logger.error("An error occurred");
-			exception.printStackTrace();
-			System.exit(1);
-			return null;
-		}
-	}
-
-	/**
-	 * Creates and configures a diff formatter
-	 *
-	 * @return the diff formatter
-	 */
-	private DiffFormatter diffFormatter() {
-		DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
-		diffFormatter.setRepository(repository);
-		diffFormatter.setDetectRenames(true);
-		return diffFormatter;
-	}
-
-	/**
-	 * Counts the lines changed in a diff entry (change to file)
-	 *
-	 * @param diffEntry the diff entry
-	 * @return the number of lines changed in the diff entry
-	 */
-	private int countLinesChanged(DiffEntry diffEntry) {
-		try {
-			Iterable<Edit> edits = diffFormatter().toFileHeader(diffEntry).toEditList();
-			int numberOfLinesChanged = 0;
-			// for each edit (changed region of a file)
-			for (Edit edit : edits) {
-				if (edit.getType() == Edit.Type.INSERT) {
-					numberOfLinesChanged += edit.getLengthB();
-				} else if (edit.getType() == Edit.Type.REPLACE) {
-					numberOfLinesChanged += max(edit.getLengthA(), edit.getLengthB());
-				} else if (edit.getType() == Edit.Type.DELETE) {
-					numberOfLinesChanged += edit.getLengthA();
-				}
-			}
-			return numberOfLinesChanged;
-		} catch (Exception exception) {
-			Logger.error("An error occurred");
-			exception.printStackTrace();
-			System.exit(1);
-			return -1;
 		}
 	}
 }

@@ -9,7 +9,7 @@ import java.util.List;
 import static java.util.Arrays.asList;
 import static org.apache.log4j.LogManager.getRootLogger;
 
-public class Main {
+public class Application {
 	private static final String REPOSITORY_PATH = "../entropy-tester";
 	private static final String BRANCH_NAME = "master";
 	private static final String START_COMMIT_ID = "1c0006c098d889af904bd4c5ac47b7e289b71400";
@@ -23,8 +23,8 @@ public class Main {
 		List<String> fileTypes = asList(FILE_TYPES);
 		double entropy = entropyComputer.computeEntropy(START_COMMIT_ID, END_COMMIT_ID, fileTypes, NORMALISE);
 		DecimalFormat decimalFormat = new DecimalFormat();
-		decimalFormat.setMinimumFractionDigits(4);
-		decimalFormat.setMaximumFractionDigits(4);
+		decimalFormat.setMinimumFractionDigits(2);
+		decimalFormat.setMaximumFractionDigits(2);
 		Logger.info("Entropy = " + decimalFormat.format(entropy));
 	}
 }
