@@ -1,14 +1,12 @@
 package uk.ac.qub.dkeenan21;
 
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.lib.RepositoryBuilder;
 import org.refactoringminer.api.GitHistoryRefactoringMiner;
 import org.refactoringminer.api.Refactoring;
 import org.refactoringminer.api.RefactoringHandler;
 import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl;
 import org.tinylog.Logger;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,16 +19,17 @@ public class RefactoringDetector {
 	private final Repository repository;
 
 	/**
-	 * Constructor which accepts a repository path
+	 * Constructor which accepts a path to a repository
 	 *
-	 * @param repositoryPath the repository path
+	 * @param repositoryPath a path to the repository
 	 */
 	public RefactoringDetector(String repositoryPath) {
-		repository = convertToRepository(repositoryPath);
+		this.repository = new RepositoryHelper().convertToRepository(repositoryPath);
 	}
 
 	/**
 	 * Counts the refactorings of each type detected between two commits (inclusive)
+	 * todo: use 'refactoringSet' as analogy to 'changeSet'
 	 *
 	 * @param startCommitId the ID of the less recent commit
 	 * @param endCommitId the ID of the more recent commit
@@ -94,36 +93,5 @@ public class RefactoringDetector {
 				}
 			}
 		};
-	}
-
-	/**
-	 * Converts a repository path to a corresponding repository representation
-	 * Note: the Git metadata (.git) directory must be at the root of the repository
-	 *
-	 * @param repositoryPath the repository path
-	 * @return the repository representation
-	 */
-	private Repository convertToRepository(String repositoryPath) {
-		File repositoryDirectory = new File(repositoryPath);
-		if (repositoryDirectory.exists()) {
-			RepositoryBuilder repositoryBuilder = new RepositoryBuilder();
-			File repositoryMetadataDirectory = new File(repositoryDirectory, ".git");
-			try {
-				return repositoryBuilder
-						.setGitDir(repositoryMetadataDirectory)
-						.readEnvironment()
-						.setMustExist(true)
-						.build();
-			} catch (Exception exception) {
-				Logger.error("An error occurred while building the repository representation");
-				exception.printStackTrace();
-				System.exit(1);
-				return null;
-			}
-		} else {
-			Logger.error("Repository not found at: " + repositoryPath);
-			System.exit(1);
-			return null;
-		}
 	}
 }

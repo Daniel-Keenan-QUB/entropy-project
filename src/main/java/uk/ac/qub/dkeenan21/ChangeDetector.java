@@ -1,6 +1,5 @@
 package uk.ac.qub.dkeenan21;
 
-import org.apache.commons.io.FilenameUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
@@ -13,6 +12,10 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.EmptyTreeIterator;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.treewalk.filter.OrTreeFilter;
+import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
+import org.eclipse.jgit.treewalk.filter.TreeFilter;
 import org.eclipse.jgit.util.io.DisabledOutputStream;
 import org.tinylog.Logger;
 
@@ -27,7 +30,7 @@ public class ChangeDetector {
 	private final Repository repository;
 
 	/**
-	 * Constructor which accepts a repository path
+	 * Constructor which accepts a path to a repository
 	 *
 	 * @param repositoryPath a path to the repository
 	 */
@@ -36,51 +39,39 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Generates a map representing a summary of a single-commit change set
+	 * Generates a map representing a summary of a change period
 	 *
-	 * @param commitId the ID of the single commit in the change set
-	 * @param fileTypesToInclude the filename extensions (with no preceding dot) of the only file types to be included
-	 * @return a map containing an entry for each changed file in the change set
-	 *         entries are of the form [key = file name, value = number of changed lines]
+	 * @param startCommitId the ID of the first commit in the change period
+	 * @param endCommitId the ID of the last commit in the change period
+	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
+	 * @return a map containing an entry for each changed file in the change period
+	 *         entries are of the form [key = file path, value = number of changed lines]
 	 */
-	public Map<String,Integer> summariseChangeSet(String commitId, Collection<String> fileTypesToInclude) {
-		return summariseChangeSet(commitId, commitId, fileTypesToInclude);
-	}
-
-	/**
-	 * Generates a map representing a summary of a multi-commit change set
-	 *
-	 * @param startCommitId the ID of the earliest commit in the change set
-	 * @param endCommitId the ID of the latest commit in the change set
-	 * @param fileTypesToInclude the filename extensions (with no preceding dot) of the only file types to be included
-	 * @return a map containing an entry for each changed file in the change set
-	 *         entries are of the form [key = file name, value = number of changed lines]
-	 */
-	public Map<String,Integer> summariseChangeSet(String startCommitId, String endCommitId, Collection<String> fileTypesToInclude) {
+	public Map<String,Integer> summariseChangePeriod(String startCommitId, String endCommitId,
+													 Set<String> fileTypeWhitelist) {
 		try {
 			final Iterable<RevCommit> commits = extractNonMergeCommits(startCommitId, endCommitId);
-			final Map<String,Integer> changeSetSummary = new TreeMap<>();
+			final Map<String,Integer> changePeriodSummary = new TreeMap<>();
 			for (RevCommit commit : commits) {
 				Logger.debug("Listing changes in commit " + commit.getName());
-				final Iterable<DiffEntry> fileChanges = extractFileChanges(commit);
+				final Iterable<DiffEntry> fileChanges = extractFileChanges(commit, fileTypeWhitelist);
 				for (DiffEntry fileChange : fileChanges) {
-					final String changedFileName = fileChange.getOldPath().equals("/dev/null") ? fileChange.getNewPath() : fileChange.getOldPath();
-					final String changedFileNameExtension = FilenameUtils.getExtension(changedFileName);
-					if (!fileTypesToInclude.contains(changedFileNameExtension)) {
-						continue;
-					}
+					// a value of '/dev/null' indicates file addition/deletion for an old/new path respectively
+					final String changedFilePath = fileChange.getOldPath().equals("/dev/null") ? fileChange.getNewPath()
+							: fileChange.getOldPath();
 					final int numberOfChangedLinesInChangedFile = countChangedLines(fileChange);
-					Logger.debug("– " + changedFileName + " (" + numberOfChangedLinesInChangedFile + " lines)");
-					if (changeSetSummary.containsKey(changedFileName)) {
-						changeSetSummary.put(changedFileName, changeSetSummary.get(changedFileName) + numberOfChangedLinesInChangedFile);
+					Logger.debug("– " + changedFilePath + " (" + numberOfChangedLinesInChangedFile + " lines)");
+					if (changePeriodSummary.containsKey(changedFilePath)) {
+						changePeriodSummary.put(changedFilePath, changePeriodSummary.get(changedFilePath)
+								+ numberOfChangedLinesInChangedFile);
 					} else {
-						changeSetSummary.put(changedFileName, numberOfChangedLinesInChangedFile);
+						changePeriodSummary.put(changedFilePath, numberOfChangedLinesInChangedFile);
 					}
 				}
 			}
-			return changeSetSummary;
+			return changePeriodSummary;
 		} catch (Exception exception) {
-			Logger.error("An error occurred while summarising the change set");
+			Logger.error("An error occurred while summarising the change period");
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
@@ -88,10 +79,10 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Extracts the non-merge commits from a change set
+	 * Extracts the non-merge commits from a commit sequence
 	 *
-	 * @param startCommitId the ID of the earliest commit in the change set
-	 * @param endCommitId the ID of the latest commit in the change set
+	 * @param startCommitId the ID of the first commit in the commit sequence
+	 * @param endCommitId the ID of the last commit in the commit sequence
 	 * @return the extracted non-merge commits
 	 */
 	private Iterable<RevCommit> extractNonMergeCommits(String startCommitId, String endCommitId) {
@@ -102,11 +93,14 @@ public class ChangeDetector {
 			final List<RevCommit> nonMergeCommits = StreamSupport.stream(commits.spliterator(), false)
 					.filter(commit -> commit.getParentCount() < 2)
 					.collect(Collectors.toList());
-			nonMergeCommits.add(startCommit);
+			// must add startCommit separately, as it is not included in the 'since..until' range of log command
+			if (startCommit.getParentCount() < 2) {
+				nonMergeCommits.add(startCommit);
+			}
 			Collections.reverse(nonMergeCommits);
 			return nonMergeCommits;
 		} catch (Exception exception) {
-			Logger.error("An error occurred while extracting non-merge commits");
+			Logger.error("An error occurred while extracting non-merge commits from a commit sequence");
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
@@ -117,10 +111,11 @@ public class ChangeDetector {
 	 * Extracts the file changes from a commit
 	 *
 	 * @param commit the commit
+	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
 	 * @return the file changes
 	 */
-	private Iterable<DiffEntry> extractFileChanges(RevCommit commit) {
-		try (DiffFormatter diffFormatter = diffFormatter()) {
+	private Iterable<DiffEntry> extractFileChanges(RevCommit commit, Set<String> fileTypeWhitelist) {
+		try (final DiffFormatter diffFormatter = generateDiffFormatter()) {
 			// extract file changes by comparing the commit tree with that of its parent
 			final ObjectReader objectReader = repository.newObjectReader();
 			final AbstractTreeIterator commitTreeIterator = new CanonicalTreeParser(null, objectReader, commit.getTree());
@@ -133,6 +128,7 @@ public class ChangeDetector {
 				// this is the initial commit (no parent), so must compare with empty tree
 				parentCommitTreeIterator = new EmptyTreeIterator();
 			}
+			diffFormatter.setPathFilter(generateFileTypeWhitelistTreeFilter(fileTypeWhitelist));
 			return diffFormatter.scan(parentCommitTreeIterator, commitTreeIterator);
 		} catch (Exception exception) {
 			Logger.error("An error occurred while extracting the file changes from a commit");
@@ -149,7 +145,7 @@ public class ChangeDetector {
 	 * @return the number of changed lines in the file change
 	 */
 	private int countChangedLines(DiffEntry fileChange) {
-		try (DiffFormatter diffFormatter = diffFormatter()) {
+		try (final DiffFormatter diffFormatter = generateDiffFormatter()) {
 			final Iterable<Edit> changedRegionsOfFile = diffFormatter.toFileHeader(fileChange).toEditList();
 			int numberOfChangedLines = 0;
 			for (Edit changedRegionOfFile : changedRegionsOfFile) {
@@ -171,35 +167,80 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Counts the lines in the system at a commit
+	 * Counts the files which existed in the system at any point in a commit sequence
+	 * Each unique file path is counted at most once
 	 *
-	 * @param commitId the ID of the commit
-	 * @param fileTypesToInclude the filename extensions (with no preceding dot) of the only file types to be included
-	 * @return the number of lines in the system
+	 * @param startCommitId the ID of the first commit in the commit sequence
+	 * @param endCommitId the ID of the last commit in the commit sequence
+	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
+	 * @return the number of files which existed in the system at any point in the commit sequence
 	 */
-	public int countLinesInSystem(String commitId, Collection<String> fileTypesToInclude) {
-		try (DiffFormatter diffFormatter = diffFormatter()) {
-			final RevCommit commit = repository.parseCommit(ObjectId.fromString(commitId));
-			final ObjectReader objectReader = repository.newObjectReader();
-			final AbstractTreeIterator commitTreeIterator = new CanonicalTreeParser(null, objectReader, commit.getTree());
-			final AbstractTreeIterator emptyTreeIterator = new EmptyTreeIterator();
-			final Iterable<DiffEntry> fileChanges = diffFormatter.scan(emptyTreeIterator, commitTreeIterator);
-			int numberOfLinesInSystem = 0;
-			for (DiffEntry fileChange : fileChanges) {
-				final String changedFileName = fileChange.getNewPath();
-				final String changedFileNameExtension = FilenameUtils.getExtension(changedFileName);
-				if (!fileTypesToInclude.contains(changedFileNameExtension)) {
-					continue;
-				}
-				// comparing with empty tree means every line in the system will be considered a 'changed line'
-				numberOfLinesInSystem += countChangedLines(fileChange);
+	public int countFilesInSystem(String startCommitId, String endCommitId, Set<String> fileTypeWhitelist) {
+		return enumerateFilesInSystem(startCommitId, endCommitId, fileTypeWhitelist).size();
+	}
+
+	/**
+	 * Enumerates the files which existed in the system at any point in a commit sequence
+	 * Each unique file path is included at most once
+	 *
+	 * @param startCommitId the ID of the first commit in the commit sequence
+	 * @param endCommitId the ID of the last commit in the commit sequence
+	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
+	 * @return the paths of the files which existed in the system at any point in the commit sequence
+	 */
+	private Set<String> enumerateFilesInSystem(String startCommitId, String endCommitId, Set<String> fileTypeWhitelist) {
+		final Iterable<RevCommit> commits = extractNonMergeCommits(startCommitId, endCommitId);
+		final Set<String> pathsOfFilesInSystem = new HashSet<>();
+		for (RevCommit commit : commits) {
+			final Set<String> pathsOfFilesInSystemAtCommit = enumerateFilesInSystem(commit, fileTypeWhitelist);
+			pathsOfFilesInSystem.addAll(pathsOfFilesInSystemAtCommit);
+		}
+		return pathsOfFilesInSystem;
+	}
+
+	/**
+	 * Enumerates the files in the system at a commit
+	 *
+	 * @param commit the commit
+	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
+	 * @return the paths of the files in the system at the commit
+	 */
+	private Set<String> enumerateFilesInSystem(RevCommit commit, Set<String> fileTypeWhitelist) {
+		final Set<String> pathsOfFilesInSystem = new HashSet<>();
+		try (final TreeWalk treeWalk = new TreeWalk(repository)) {
+			treeWalk.addTree(commit.getTree());
+			treeWalk.setRecursive(true);
+			treeWalk.setFilter(generateFileTypeWhitelistTreeFilter(fileTypeWhitelist));
+			while (treeWalk.next()) {
+				pathsOfFilesInSystem.add(treeWalk.getPathString());
 			}
-			return numberOfLinesInSystem;
 		} catch (Exception exception) {
-			Logger.error("An error occurred while counting the lines in the system");
+			Logger.error("An error occurred while enumerating the files in the system at a commit");
 			exception.printStackTrace();
 			System.exit(1);
-			return -1;
+			return null;
+		}
+		return pathsOfFilesInSystem;
+	}
+
+	/**
+	 * Creates and configures a tree filter enforcing a whitelist of file types
+	 *
+	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
+	 * @return a tree filter enforcing the whitelist of file types
+	 */
+	private TreeFilter generateFileTypeWhitelistTreeFilter(Set<String> fileTypeWhitelist) {
+		final List<TreeFilter> treeFilters = new ArrayList<>();
+		for (String fileType : fileTypeWhitelist) {
+			final TreeFilter treeFilter = PathSuffixFilter.create(fileType);
+			treeFilters.add(treeFilter);
+		}
+		if (treeFilters.size() == 0) {
+			return TreeFilter.ALL;
+		} else if (treeFilters.size() == 1) {
+			return treeFilters.get(0);
+		} else {
+			return OrTreeFilter.create(treeFilters.toArray(new TreeFilter[0]));
 		}
 	}
 
@@ -208,10 +249,9 @@ public class ChangeDetector {
 	 *
 	 * @return the diff formatter
 	 */
-	private DiffFormatter diffFormatter() {
-		DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
+	private DiffFormatter generateDiffFormatter() {
+		final DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
 		diffFormatter.setRepository(repository);
-		diffFormatter.setDetectRenames(true);
 		return diffFormatter;
 	}
 }

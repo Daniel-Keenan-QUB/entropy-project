@@ -2,25 +2,27 @@ package uk.ac.qub.dkeenan21;
 
 import org.apache.log4j.varia.NullAppender;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
-import static java.util.Arrays.asList;
 import static org.apache.log4j.LogManager.getRootLogger;
 
 public class Application {
 	private static final String repositoryPath = "../entropy-tester";
-	private static final String startCommitId = "839008fb17bf24722ac459d608b5e105e307d4e1";
-	private static final String endCommitId = "839008fb17bf24722ac459d608b5e105e307d4e1";
-	private static final String[] fileTypes = new String[] {"java", "txt"};
+	private static final String startCommitId = "a1cee4a1952fc7ebdae857c79ca3abd7d07ced31";
+	private static final String endCommitId = "a1cee4a1952fc7ebdae857c79ca3abd7d07ced31";
+	private static final String[] fileTypes = new String[] {"txt"};
 
 	public static void main(String[] args) {
 		getRootLogger().addAppender(new NullAppender()); // disable log4j output from JGit library
 
+		final Set<String> fileTypesSet = new HashSet<>(Set.of(fileTypes));
 		final ChangeDetector changeDetector = new ChangeDetector(repositoryPath);
-		final Map<String,Integer> changeSetSummary = changeDetector.summariseChangeSet(startCommitId, endCommitId, asList(fileTypes));
-		final int numberOfLinesInSystem = changeDetector.countLinesInSystem(endCommitId, asList(fileTypes));
+		final Map<String,Integer> changeSetSummary = changeDetector.summariseChangePeriod(startCommitId, endCommitId, fileTypesSet);
+		final int numberOfFilesInSystem = changeDetector.countFilesInSystem(startCommitId, endCommitId, fileTypesSet);
 		final EntropyComputer entropyComputer = new EntropyComputer();
-		final double entropy = entropyComputer.computeAbsoluteEntropy(changeSetSummary);
-//		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfLinesInSystem);
+//		final double entropy = entropyComputer.computeAbsoluteEntropy(changeSetSummary);
+		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfFilesInSystem);
 	}
 }
