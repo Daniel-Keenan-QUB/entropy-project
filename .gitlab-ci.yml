@@ -1,15 +1,18 @@
 image: gradle:jdk16
 
 stages:
-  - build
   - test
+  - build
+
+test:
+  stage: test
+  script:
+    - ./gradlew test
+  artifacts:
+    reports:
+      junit: build/test-results/test/**/TEST-*.xml
 
 build:
   stage: build
   script:
     - ./gradlew assemble
-
-test:
-  stage: test
-  script:
-    - ./gradlew check
