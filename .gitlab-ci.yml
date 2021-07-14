@@ -14,6 +14,7 @@ code-quality:
       - build/reports/spotbugs/main.xml
     reports:
       sast: build/reports/spotbugs/main.xml
+    when: always
 
 test:
   stage: test
