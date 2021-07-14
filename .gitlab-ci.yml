@@ -14,7 +14,6 @@ code-quality:
       - build/reports/spotbugs/main.xml
     reports:
       sast: build/reports/spotbugs/main.xml
-    expire_in: never
 
 test:
   stage: test
