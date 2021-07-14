@@ -13,7 +13,7 @@ code-quality:
     paths:
       - build/reports/spotbugs/main.xml
     reports:
-      codequality: build/reports/spotbugs/main.xml
+      sast: build/reports/spotbugs/main.xml
 
 test:
   stage: test
