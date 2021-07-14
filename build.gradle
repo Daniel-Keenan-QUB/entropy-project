@@ -1,10 +1,10 @@
-group 'uk.ac.qub.dkeenan21'
-version '1.0-SNAPSHOT'
-
 plugins {
     id 'java'
     id "com.github.spotbugs" version "4.7.2"
 }
+
+group 'uk.ac.qub.dkeenan21'
+version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
