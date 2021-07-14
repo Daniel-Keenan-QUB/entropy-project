@@ -11,9 +11,9 @@ code-quality:
     - ./gradlew spotBugsMain
   artifacts:
     paths:
-      - builds/40173954/csc4006-project/build/reports/spotbugs/main.xml
+      - build/reports/spotbugs/main.xml
     reports:
-      codequality: builds/40173954/csc4006-project/build/reports/spotbugs/main.xml
+      codequality: build/reports/spotbugs/main.xml
 
 test:
   stage: test
