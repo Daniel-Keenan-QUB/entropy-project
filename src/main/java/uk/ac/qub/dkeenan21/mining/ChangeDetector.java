@@ -9,6 +9,8 @@ import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.revwalk.filter.CommitTimeRevFilter;
+import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.EmptyTreeIterator;
@@ -36,6 +38,37 @@ public class ChangeDetector {
 	 */
 	public ChangeDetector(String repositoryPath) {
 		this.repository = new RepositoryHelper().convertToRepository(repositoryPath);
+	}
+
+	/**
+	 * Generates a map representing a summary of a change period
+	 *
+	 * @param startTime     the start time of the change period
+	 * @param endTime       the end time of the change period
+	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
+	 * @return a map containing an entry for each changed file in the change period
+	 * entries are of the form [key = path, value = number of changed lines]
+	 */
+	public Map<String, Integer> summariseChangePeriod(Date startTime, Date endTime, Set<String> fileTypeWhitelist) {
+		try {
+			final RevFilter timeRangeFilter = CommitTimeRevFilter.between(startTime, endTime);
+			final Iterable<RevCommit> commits = new Git(repository).log().setRevFilter(timeRangeFilter).call();
+			final List<RevCommit> commitsList = new ArrayList<>();
+			for (RevCommit commit : commits) {
+				commitsList.add(commit);
+			}
+			final RevCommit startCommit = extractEarliestCommit(commitsList);
+			final RevCommit endCommit = extractLatestCommit(commitsList);
+			if (startCommit == null || endCommit == null) {
+				return new TreeMap<>(); // no commits in range
+			}
+			return summariseChangePeriod(startCommit.getName(), endCommit.getName(), fileTypeWhitelist);
+		} catch (Exception exception) {
+			Logger.error("An error occurred while summarising the change period");
+			exception.printStackTrace();
+			System.exit(1);
+			return null;
+		}
 	}
 
 	/**
@@ -168,6 +201,81 @@ public class ChangeDetector {
 	}
 
 	/**
+	 * Extracts the earliest commit from a list of commits
+	 *
+	 * @param commits the list of commits
+	 * @return the commit with the lowest timestamp, or null if no commits have been supplied
+	 */
+	private RevCommit extractEarliestCommit(List<RevCommit> commits) {
+		if (commits.size() == 0) {
+			return null;
+		} else if (commits.size() == 1) {
+			return commits.get(0);
+		} else {
+			RevCommit earliestCommit = commits.get(0);
+			for (RevCommit commit : commits) {
+				if (commit.getCommitTime() < earliestCommit.getCommitTime()) {
+					earliestCommit = commit;
+				}
+			}
+			return earliestCommit;
+		}
+	}
+
+	/**
+	 * Extracts the latest commit from a list of commits
+	 *
+	 * @param commits the list of commits
+	 * @return the commit with the highest timestamp, or null if no commits have been supplied
+	 */
+	private RevCommit extractLatestCommit(List<RevCommit> commits) {
+		if (commits.size() == 0) {
+			return null;
+		} else if (commits.size() == 1) {
+			return commits.get(0);
+		} else {
+			RevCommit earliestCommit = commits.get(0);
+			for (RevCommit commit : commits) {
+				if (commit.getCommitTime() > earliestCommit.getCommitTime()) {
+					earliestCommit = commit;
+				}
+			}
+			return earliestCommit;
+		}
+	}
+
+	/**
+	 * Counts the files which existed in the system at any point in a change period
+	 * Each unique file path is counted at most once
+	 *
+	 * @param startTime     the start time of the change period
+	 * @param endTime       the end time of the change period
+	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
+	 * @return the number of files which existed in the system at any point in the commit sequence
+	 */
+	public int countFilesInSystem(Date startTime, Date endTime, Set<String> fileTypeWhitelist) {
+		try {
+			final RevFilter timeRangeFilter = CommitTimeRevFilter.between(startTime, endTime);
+			final Iterable<RevCommit> commits = new Git(repository).log().setRevFilter(timeRangeFilter).call();
+			final List<RevCommit> commitsList = new ArrayList<>();
+			for (RevCommit commit : commits) {
+				commitsList.add(commit);
+			}
+			final RevCommit startCommit = extractEarliestCommit(commitsList);
+			final RevCommit endCommit = extractLatestCommit(commitsList);
+			if (startCommit == null || endCommit == null) {
+				return 0; // no commits in range
+			}
+			return countFilesInSystem(startCommit.getName(), endCommit.getName(), fileTypeWhitelist);
+		} catch (Exception exception) {
+			Logger.error("An error occurred while counting the files in the system over a change period");
+			exception.printStackTrace();
+			System.exit(1);
+			return 0;
+		}
+	}
+
+	/**
 	 * Counts the files which existed in the system at any point in a commit sequence
 	 * Each unique file path is counted at most once
 	 *
@@ -264,7 +372,7 @@ public class ChangeDetector {
 	 */
 	private void validateCommitOrder(RevCommit startCommit, RevCommit endCommit) {
 		if (startCommit.getCommitTime() > endCommit.getCommitTime()) {
-			Logger.error("Start commit timestamp cannot be greater than end commit timestamo");
+			Logger.error("Start commit timestamp cannot be greater than end commit timestamp");
 			System.exit(1);
 		}
 	}
