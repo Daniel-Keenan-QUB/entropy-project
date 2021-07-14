@@ -41,17 +41,17 @@ public class ChangeDetector {
 	/**
 	 * Generates a map representing a summary of a change period
 	 *
-	 * @param startCommitId the ID of the first commit in the change period
-	 * @param endCommitId the ID of the last commit in the change period
+	 * @param startCommitId     the ID of the first commit in the change period
+	 * @param endCommitId       the ID of the last commit in the change period
 	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
 	 * @return a map containing an entry for each changed file in the change period
-	 *         entries are of the form [key = file path, value = number of changed lines]
+	 * entries are of the form [key = path, value = number of changed lines]
 	 */
-	public Map<String,Integer> summariseChangePeriod(String startCommitId, String endCommitId,
-													 Set<String> fileTypeWhitelist) {
+	public Map<String, Integer> summariseChangePeriod(String startCommitId, String endCommitId,
+													  Set<String> fileTypeWhitelist) {
 		try {
 			final Iterable<RevCommit> commits = extractNonMergeCommits(startCommitId, endCommitId);
-			final Map<String,Integer> changePeriodSummary = new TreeMap<>();
+			final Map<String, Integer> changePeriodSummary = new TreeMap<>();
 			for (RevCommit commit : commits) {
 				Logger.debug("Listing changes in commit " + commit.getName());
 				final Iterable<DiffEntry> fileChanges = extractFileChanges(commit, fileTypeWhitelist);
@@ -82,7 +82,7 @@ public class ChangeDetector {
 	 * Extracts the non-merge commits from a commit sequence
 	 *
 	 * @param startCommitId the ID of the first commit in the commit sequence
-	 * @param endCommitId the ID of the last commit in the commit sequence
+	 * @param endCommitId   the ID of the last commit in the commit sequence
 	 * @return the extracted non-merge commits
 	 */
 	private Iterable<RevCommit> extractNonMergeCommits(String startCommitId, String endCommitId) {
@@ -110,7 +110,7 @@ public class ChangeDetector {
 	/**
 	 * Extracts the file changes from a commit
 	 *
-	 * @param commit the commit
+	 * @param commit            the commit
 	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
 	 * @return the file changes
 	 */
@@ -170,8 +170,8 @@ public class ChangeDetector {
 	 * Counts the files which existed in the system at any point in a commit sequence
 	 * Each unique file path is counted at most once
 	 *
-	 * @param startCommitId the ID of the first commit in the commit sequence
-	 * @param endCommitId the ID of the last commit in the commit sequence
+	 * @param startCommitId     the ID of the first commit in the commit sequence
+	 * @param endCommitId       the ID of the last commit in the commit sequence
 	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
 	 * @return the number of files which existed in the system at any point in the commit sequence
 	 */
@@ -183,8 +183,8 @@ public class ChangeDetector {
 	 * Enumerates the files which existed in the system at any point in a commit sequence
 	 * Each unique file path is included at most once
 	 *
-	 * @param startCommitId the ID of the first commit in the commit sequence
-	 * @param endCommitId the ID of the last commit in the commit sequence
+	 * @param startCommitId     the ID of the first commit in the commit sequence
+	 * @param endCommitId       the ID of the last commit in the commit sequence
 	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
 	 * @return the paths of the files which existed in the system at any point in the commit sequence
 	 */
@@ -201,7 +201,7 @@ public class ChangeDetector {
 	/**
 	 * Enumerates the files in the system at a commit
 	 *
-	 * @param commit the commit
+	 * @param commit            the commit
 	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
 	 * @return the paths of the files in the system at the commit
 	 */

@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Unit tests for the EntropyComputer class
  */
 public class EntropyComputerTest {
-	private Map<String,Integer> changeSetSummary;
+	private Map<String, Integer> changeSetSummary;
 	private EntropyComputer entropyComputer;
 	private final int numberOfLinesInSystem = 250;
 

@@ -32,12 +32,12 @@ public class RefactoringDetector {
 	 * todo: use 'refactoringSet' as analogy to 'changeSet'
 	 *
 	 * @param startCommitId the ID of the less recent commit
-	 * @param endCommitId the ID of the more recent commit
+	 * @param endCommitId   the ID of the more recent commit
 	 * @return a map containing key-value pairs of the form: refactoring type, total number of occurrences
 	 */
-	public Map<String,Integer> countRefactoringsOfEachType(String startCommitId, String endCommitId) {
+	public Map<String, Integer> countRefactoringsOfEachType(String startCommitId, String endCommitId) {
 		Iterable<Refactoring> refactorings = extractRefactorings(startCommitId, endCommitId);
-		Map<String,Integer> refactoringsMap = new HashMap<>();
+		Map<String, Integer> refactoringsMap = new HashMap<>();
 		for (Refactoring refactoring : refactorings) {
 			if (refactoringsMap.containsKey(refactoring.getName())) {
 				refactoringsMap.put(refactoring.getName(), refactoringsMap.get(refactoring.getName()) + 1);
@@ -47,7 +47,7 @@ public class RefactoringDetector {
 		}
 
 		Logger.debug("Summary of refactorings over all commits in series");
-		for (Map.Entry<String,Integer> entry : refactoringsMap.entrySet()) {
+		for (Map.Entry<String, Integer> entry : refactoringsMap.entrySet()) {
 			Logger.debug(entry.getKey() + " (" + entry.getValue() + " occurrences)");
 		}
 		int numberOfRefactorings = refactoringsMap.values().stream().reduce(0, Integer::sum);
@@ -60,7 +60,7 @@ public class RefactoringDetector {
 	 * Extracts the refactorings between two commits (inclusive)
 	 *
 	 * @param startCommitId the ID of the less recent commit
-	 * @param endCommitId the ID of the more recent commit
+	 * @param endCommitId   the ID of the more recent commit
 	 */
 	private Iterable<Refactoring> extractRefactorings(String startCommitId, String endCommitId) {
 		GitHistoryRefactoringMiner gitHistoryRefactoringMiner = new GitHistoryRefactoringMinerImpl();
