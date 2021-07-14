@@ -1,10 +1,10 @@
+group 'uk.ac.qub.dkeenan21'
+version '1.0-SNAPSHOT'
+
 plugins {
     id 'java'
     id "com.github.spotbugs" version "4.7.2"
 }
-
-group 'uk.ac.qub.dkeenan21'
-version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
@@ -18,11 +18,6 @@ dependencies {
     implementation 'org.tinylog:tinylog-impl:2.3.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
-}
-
-compileJava   {
-    sourceCompatibility = 11
-    targetCompatibility = 11
 }
 
 test {
