@@ -1,8 +1,8 @@
 <FindBugsFilter>
 	<Match>
-		<Bug pattern="DM_EXIT" />
+		<Bug pattern="DLS_DEAD_LOCAL_STORE" />
 	</Match>
 	<Match>
-		<Bug pattern="DLS_DEAD_LOCAL_STORE" />
+		<Bug pattern="DM_EXIT" />
 	</Match>
 </FindBugsFilter>

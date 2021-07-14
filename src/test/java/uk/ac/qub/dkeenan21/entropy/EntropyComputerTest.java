@@ -2,7 +2,6 @@ package uk.ac.qub.dkeenan21.entropy;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import uk.ac.qub.dkeenan21.entropy.EntropyComputer;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -15,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class EntropyComputerTest {
 	private Map<String, Integer> changeSetSummary;
 	private EntropyComputer entropyComputer;
-	private final int numberOfLinesInSystem = 250;
+	private final int numberOfFilesForNormalisation = 250;
 
 	@BeforeEach
 	public void initialise() {
@@ -105,7 +104,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File G", 5);
 		changeSetSummary.put("File H", 2);
 		final double entropy = entropyComputer.computeAbsoluteEntropy(changeSetSummary);
-		assertEquals(2.5828515239060015, entropy);
+		assertEquals(2.582851523906001, entropy);
 	}
 
 	@Test
@@ -119,7 +118,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File G", 2);
 		changeSetSummary.put("File H", 2);
 		final double entropy = entropyComputer.computeAbsoluteEntropy(changeSetSummary);
-		assertEquals(1.6141487706500266, entropy);
+		assertEquals(1.6141487706500264, entropy);
 	}
 
 	@Test
@@ -138,7 +137,7 @@ public class EntropyComputerTest {
 
 	@Test
 	public void computeNormalisedEntropy_zeroFilesChanged() {
-		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfLinesInSystem);
+		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfFilesForNormalisation);
 		assertEquals(0.0, entropy);
 	}
 
@@ -146,21 +145,21 @@ public class EntropyComputerTest {
 	public void computeNormalisedEntropy_singleFileChanged_zeroLinesChanged() {
 		// note: zero-line changes are anomalous should be ignored in computation
 		changeSetSummary.put("File A", 0);
-		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfLinesInSystem);
+		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfFilesForNormalisation);
 		assertEquals(0.0, entropy);
 	}
 
 	@Test
 	public void computeNormalisedEntropy_singleFileChanged_singleLineChanged() {
 		changeSetSummary.put("File A", 1);
-		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfLinesInSystem);
+		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfFilesForNormalisation);
 		assertEquals(0.0, entropy);
 	}
 
 	@Test
 	public void computeNormalisedEntropy_singleFileChanged_multipleLinesChanged() {
 		changeSetSummary.put("File A", 25);
-		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfLinesInSystem);
+		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfFilesForNormalisation);
 		assertEquals(0.0, entropy);
 	}
 
@@ -175,7 +174,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File F", 0);
 		changeSetSummary.put("File G", 0);
 		changeSetSummary.put("File H", 0);
-		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfLinesInSystem);
+		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfFilesForNormalisation);
 		assertEquals(0.0, entropy);
 	}
 
@@ -189,7 +188,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File F", 1);
 		changeSetSummary.put("File G", 1);
 		changeSetSummary.put("File H", 1);
-		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfLinesInSystem);
+		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfFilesForNormalisation);
 		assertEquals(0.37661075078023676, entropy);
 	}
 
@@ -203,7 +202,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File F", 25);
 		changeSetSummary.put("File G", 25);
 		changeSetSummary.put("File H", 25);
-		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfLinesInSystem);
+		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfFilesForNormalisation);
 		assertEquals(0.37661075078023676, entropy);
 	}
 
@@ -217,7 +216,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File F", 7);
 		changeSetSummary.put("File G", 5);
 		changeSetSummary.put("File H", 2);
-		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfLinesInSystem);
+		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfFilesForNormalisation);
 		assertEquals(0.3242432171907059, entropy);
 	}
 
@@ -231,8 +230,8 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File F", 3);
 		changeSetSummary.put("File G", 2);
 		changeSetSummary.put("File H", 2);
-		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfLinesInSystem);
-		assertEquals(0.202635260128501, entropy);
+		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfFilesForNormalisation);
+		assertEquals(0.2026352601285009, entropy);
 	}
 
 	@Test
@@ -245,7 +244,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File F", 1);
 		changeSetSummary.put("File G", 0); // note: zero-line changes should be ignored in computation
 		changeSetSummary.put("File H", 0);
-		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfLinesInSystem);
+		final double entropy = entropyComputer.computeNormalisedEntropy(changeSetSummary, numberOfFilesForNormalisation);
 		assertEquals(0.2358444461368676, entropy);
 	}
 }
