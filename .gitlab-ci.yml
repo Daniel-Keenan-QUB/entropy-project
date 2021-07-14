@@ -11,9 +11,9 @@ code-quality:
     - ./gradlew spotBugsMain
   artifacts:
     paths:
-      - build/reports/spotbugs/main.xml
+      - ${CI_PROJECT_DIR}/build/reports/spotbugs/main.xml
     reports:
-      sast: build/reports/spotbugs/main.xml
+      sast: ${CI_PROJECT_DIR}/build/reports/spotbugs/main.xml
 
 test:
   stage: test
