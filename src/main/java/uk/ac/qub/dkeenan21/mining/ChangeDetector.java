@@ -89,6 +89,7 @@ public class ChangeDetector {
 		try {
 			final RevCommit startCommit = repository.parseCommit(ObjectId.fromString(startCommitId));
 			final RevCommit endCommit = repository.parseCommit(ObjectId.fromString(endCommitId));
+			validateCommitOrder(startCommit, endCommit);
 			final Iterable<RevCommit> commits = new Git(repository).log().addRange(startCommit, endCommit).call();
 			final List<RevCommit> nonMergeCommits = StreamSupport.stream(commits.spliterator(), false)
 					.filter(commit -> commit.getParentCount() < 2)
@@ -253,5 +254,18 @@ public class ChangeDetector {
 		final DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
 		diffFormatter.setRepository(repository);
 		return diffFormatter;
+	}
+
+	/**
+	 * Validates the timestamp order of two commits
+	 *
+	 * @param startCommit the commit which should have an earlier timestamp
+	 * @param endCommit the commit which should have a later timestamp
+	 */
+	private void validateCommitOrder(RevCommit startCommit, RevCommit endCommit) {
+		if (startCommit.getCommitTime() > endCommit.getCommitTime()) {
+			Logger.error("Start commit timestamp cannot be greater than end commit timestamo");
+			System.exit(1);
+		}
 	}
 }

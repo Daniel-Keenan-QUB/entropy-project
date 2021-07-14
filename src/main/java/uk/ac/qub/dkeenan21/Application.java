@@ -12,9 +12,9 @@ import java.util.Set;
 import static org.apache.log4j.LogManager.getRootLogger;
 
 public class Application {
-	private static final String repositoryPath = "../entropy-tester";
-	private static final String startCommitId = "474af99c4dd47c64e6387214dc0b5f34894599fd";
-	private static final String endCommitId = "72cc100347d10b2c1429876fa3785f5d274d49f1";
+	private static final String repositoryPath = "../csc4006-project";
+	private static final String startCommitId = "6406270b17fedb4bc51142ece009d62d1ebd14d7";
+	private static final String endCommitId = "154487df3ea588060c9d8361bfafff29371e3e3d";
 	private static final String[] fileTypes = new String[]{"java"};
 
 	public static void main(String[] args) {
