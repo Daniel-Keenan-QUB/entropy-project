@@ -9,6 +9,8 @@ test:
   script:
     - ./gradlew test
   artifacts:
+    paths:
+      - build/test-results/test/**/TEST-*.xml
     reports:
       junit: build/test-results/test/**/TEST-*.xml
 
