@@ -1,4 +1,4 @@
-package uk.ac.qub.dkeenan21;
+package uk.ac.qub.dkeenan21.mining;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.DiffEntry;

@@ -1,6 +1,8 @@
 package uk.ac.qub.dkeenan21;
 
 import org.apache.log4j.varia.NullAppender;
+import uk.ac.qub.dkeenan21.entropy.EntropyComputer;
+import uk.ac.qub.dkeenan21.mining.ChangeDetector;
 
 import java.util.HashSet;
 import java.util.Map;

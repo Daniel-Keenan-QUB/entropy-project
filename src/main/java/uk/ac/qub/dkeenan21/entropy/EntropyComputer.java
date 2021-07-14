@@ -1,4 +1,4 @@
-package uk.ac.qub.dkeenan21;
+package uk.ac.qub.dkeenan21.entropy;
 
 import org.tinylog.Logger;
 

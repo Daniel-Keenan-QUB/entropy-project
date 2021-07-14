@@ -1,4 +1,4 @@
-package uk.ac.qub.dkeenan21;
+package uk.ac.qub.dkeenan21.mining;
 
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.RepositoryBuilder;

@@ -1,7 +1,8 @@
-package uk.ac.qub.dkeenan21;
+package uk.ac.qub.dkeenan21.entropy;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import uk.ac.qub.dkeenan21.entropy.EntropyComputer;
 
 import java.util.Map;
 import java.util.TreeMap;
