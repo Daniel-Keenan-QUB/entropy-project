@@ -44,35 +44,6 @@ public class ChangeDetector {
 	/**
 	 * Generates a map representing a summary of a change period
 	 *
-	 * @param startTime         the start time of the change period
-	 * @param endTime           the end time of the change period
-	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
-	 * @return a map containing an entry for each changed file in the change period
-	 * entries are of the form [key = path, value = number of changed lines]
-	 */
-	public Map<String, Integer> summariseChanges(Date startTime, Date endTime, Set<String> fileTypeWhitelist) {
-		try {
-			validateTimeOrder(startTime, endTime);
-			final RevFilter timeRangeFilter = CommitTimeRevFilter.between(startTime, endTime);
-			final Iterable<RevCommit> commits = new Git(repository).log().setRevFilter(timeRangeFilter).call();
-			final List<RevCommit> commitList = convertToCommitList(commits);
-			final RevCommit startCommit = extractEarliestCommit(commitList);
-			final RevCommit endCommit = extractLatestCommit(commitList);
-			if (startCommit == null || endCommit == null) {
-				return new TreeMap<>(); // no commits in range
-			}
-			return summariseChanges(startCommit.getName(), endCommit.getName(), fileTypeWhitelist);
-		} catch (Exception exception) {
-			Logger.error("An error occurred while summarising the change period");
-			exception.printStackTrace();
-			System.exit(1);
-			return null;
-		}
-	}
-
-	/**
-	 * Generates a map representing a summary of a change period
-	 *
 	 * @param startCommitId     the ID of the first commit in the change period
 	 * @param endCommitId       the ID of the last commit in the change period
 	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
@@ -108,34 +79,6 @@ public class ChangeDetector {
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
-		}
-	}
-
-	/**
-	 * Counts the files which existed in the system at any point in a change period
-	 * Each unique file path is counted at most once
-	 *
-	 * @param startTime         the start time of the change period
-	 * @param endTime           the end time of the change period
-	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
-	 * @return the number of files which existed in the system at any point in the commit sequence
-	 */
-	public int countFilesInSystem(Date startTime, Date endTime, Set<String> fileTypeWhitelist) {
-		try {
-			final RevFilter timeRangeFilter = CommitTimeRevFilter.between(startTime, endTime);
-			final Iterable<RevCommit> commits = new Git(repository).log().setRevFilter(timeRangeFilter).call();
-			final List<RevCommit> commitList = convertToCommitList(commits);
-			final RevCommit startCommit = extractEarliestCommit(commitList);
-			final RevCommit endCommit = extractLatestCommit(commitList);
-			if (startCommit == null || endCommit == null) {
-				return 0; // no commits in range
-			}
-			return countFilesInSystem(startCommit.getName(), endCommit.getName(), fileTypeWhitelist);
-		} catch (Exception exception) {
-			Logger.error("An error occurred while counting the files in the system over a change period");
-			exception.printStackTrace();
-			System.exit(1);
-			return 0;
 		}
 	}
 
@@ -307,50 +250,6 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Extracts the earliest commit from a list of commits
-	 *
-	 * @param commits the list of commits
-	 * @return the commit with the lowest timestamp, or null if no commits have been supplied
-	 */
-	private RevCommit extractEarliestCommit(List<RevCommit> commits) {
-		if (commits.size() == 0) {
-			return null;
-		} else if (commits.size() == 1) {
-			return commits.get(0);
-		} else {
-			RevCommit earliestCommit = commits.get(0);
-			for (RevCommit commit : commits) {
-				if (commit.getCommitTime() < earliestCommit.getCommitTime()) {
-					earliestCommit = commit;
-				}
-			}
-			return earliestCommit;
-		}
-	}
-
-	/**
-	 * Extracts the latest commit from a list of commits
-	 *
-	 * @param commits the list of commits
-	 * @return the commit with the highest timestamp, or null if no commits have been supplied
-	 */
-	private RevCommit extractLatestCommit(List<RevCommit> commits) {
-		if (commits.size() == 0) {
-			return null;
-		} else if (commits.size() == 1) {
-			return commits.get(0);
-		} else {
-			RevCommit earliestCommit = commits.get(0);
-			for (RevCommit commit : commits) {
-				if (commit.getCommitTime() > earliestCommit.getCommitTime()) {
-					earliestCommit = commit;
-				}
-			}
-			return earliestCommit;
-		}
-	}
-
-	/**
 	 * Creates and configures a tree filter enforcing a whitelist of file types
 	 *
 	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
@@ -401,32 +300,5 @@ public class ChangeDetector {
 			exception.printStackTrace();
 			System.exit(1);
 		}
-	}
-
-	/**
-	 * Validates the order of two instants of time
-	 *
-	 * @param startTime the time which should be earlier
-	 * @param endTime   the time which should be later
-	 */
-	private void validateTimeOrder(Date startTime, Date endTime) {
-		if (startTime.getTime() > endTime.getTime()) {
-			Logger.error("Start time cannot be later than end time");
-			System.exit(1);
-		}
-	}
-
-	/**
-	 * Converts an iterable of commits to a list of commits
-	 *
-	 * @param commitIterable the iterable of commits
-	 * @return the list of commits
-	 */
-	private List<RevCommit> convertToCommitList(Iterable<RevCommit> commitIterable) {
-		final List<RevCommit> commitList = new ArrayList<>();
-		for (RevCommit commit : commitIterable) {
-			commitList.add(commit);
-		}
-		return commitList;
 	}
 }
