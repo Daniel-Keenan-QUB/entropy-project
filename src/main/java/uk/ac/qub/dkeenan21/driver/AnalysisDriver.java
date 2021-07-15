@@ -6,6 +6,7 @@ import uk.ac.qub.dkeenan21.entropy.EntropyComputer;
 import uk.ac.qub.dkeenan21.mining.ChangeDetector;
 import uk.ac.qub.dkeenan21.mining.RefactoringDetector;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,7 +26,7 @@ public class AnalysisDriver {
 	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
 	 */
 	public AnalysisDriver(String repositoryPath, Set<String> fileTypeWhitelist) {
-		this.fileTypeWhitelist = fileTypeWhitelist;
+		this.fileTypeWhitelist = new HashSet<>(fileTypeWhitelist);
 		changeDetector = new ChangeDetector(repositoryPath);
 		refactoringDetector = new RefactoringDetector(repositoryPath);
 	}
