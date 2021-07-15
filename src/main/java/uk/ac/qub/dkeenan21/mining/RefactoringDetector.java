@@ -29,13 +29,12 @@ public class RefactoringDetector {
 
 	/**
 	 * Counts the refactorings of each type detected between two commits (inclusive)
-	 * todo: use 'refactoringSet' as analogy to 'changeSet'
 	 *
 	 * @param startCommitId the ID of the less recent commit
 	 * @param endCommitId   the ID of the more recent commit
 	 * @return a map containing key-value pairs of the form: refactoring type, total number of occurrences
 	 */
-	public Map<String, Integer> countRefactoringsOfEachType(String startCommitId, String endCommitId) {
+	public Map<String, Integer> summariseRefactorings(String startCommitId, String endCommitId) {
 		Iterable<Refactoring> refactorings = extractRefactorings(startCommitId, endCommitId);
 		Map<String, Integer> refactoringsMap = new HashMap<>();
 		for (Refactoring refactoring : refactorings) {
@@ -45,7 +44,6 @@ public class RefactoringDetector {
 				refactoringsMap.put(refactoring.getName(), 1);
 			}
 		}
-
 		Logger.debug("Summary of refactorings over all commits in series");
 		for (Map.Entry<String, Integer> entry : refactoringsMap.entrySet()) {
 			Logger.debug(entry.getKey() + " (" + entry.getValue() + " occurrences)");

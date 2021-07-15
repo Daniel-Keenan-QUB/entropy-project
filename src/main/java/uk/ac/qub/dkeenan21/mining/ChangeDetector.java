@@ -4,6 +4,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.diff.Edit;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
@@ -49,21 +50,18 @@ public class ChangeDetector {
 	 * @return a map containing an entry for each changed file in the change period
 	 * entries are of the form [key = path, value = number of changed lines]
 	 */
-	public Map<String, Integer> summariseChangePeriod(Date startTime, Date endTime, Set<String> fileTypeWhitelist) {
+	public Map<String, Integer> summariseChanges(Date startTime, Date endTime, Set<String> fileTypeWhitelist) {
 		try {
 			validateTimeOrder(startTime, endTime);
 			final RevFilter timeRangeFilter = CommitTimeRevFilter.between(startTime, endTime);
 			final Iterable<RevCommit> commits = new Git(repository).log().setRevFilter(timeRangeFilter).call();
-			final List<RevCommit> commitsList = new ArrayList<>();
-			for (RevCommit commit : commits) {
-				commitsList.add(commit);
-			}
-			final RevCommit startCommit = extractEarliestCommit(commitsList);
-			final RevCommit endCommit = extractLatestCommit(commitsList);
+			final List<RevCommit> commitList = convertToCommitList(commits);
+			final RevCommit startCommit = extractEarliestCommit(commitList);
+			final RevCommit endCommit = extractLatestCommit(commitList);
 			if (startCommit == null || endCommit == null) {
 				return new TreeMap<>(); // no commits in range
 			}
-			return summariseChangePeriod(startCommit.getName(), endCommit.getName(), fileTypeWhitelist);
+			return summariseChanges(startCommit.getName(), endCommit.getName(), fileTypeWhitelist);
 		} catch (Exception exception) {
 			Logger.error("An error occurred while summarising the change period");
 			exception.printStackTrace();
@@ -81,8 +79,8 @@ public class ChangeDetector {
 	 * @return a map containing an entry for each changed file in the change period
 	 * entries are of the form [key = path, value = number of changed lines]
 	 */
-	public Map<String, Integer> summariseChangePeriod(String startCommitId, String endCommitId,
-													  Set<String> fileTypeWhitelist) {
+	public Map<String, Integer> summariseChanges(String startCommitId, String endCommitId,
+												 Set<String> fileTypeWhitelist) {
 		try {
 			validateCommitOrder(startCommitId, endCommitId);
 			final Iterable<RevCommit> commits = extractNonMergeCommits(startCommitId, endCommitId);
@@ -126,12 +124,9 @@ public class ChangeDetector {
 		try {
 			final RevFilter timeRangeFilter = CommitTimeRevFilter.between(startTime, endTime);
 			final Iterable<RevCommit> commits = new Git(repository).log().setRevFilter(timeRangeFilter).call();
-			final List<RevCommit> commitsList = new ArrayList<>();
-			for (RevCommit commit : commits) {
-				commitsList.add(commit);
-			}
-			final RevCommit startCommit = extractEarliestCommit(commitsList);
-			final RevCommit endCommit = extractLatestCommit(commitsList);
+			final List<RevCommit> commitList = convertToCommitList(commits);
+			final RevCommit startCommit = extractEarliestCommit(commitList);
+			final RevCommit endCommit = extractLatestCommit(commitList);
 			if (startCommit == null || endCommit == null) {
 				return 0; // no commits in range
 			}
@@ -158,10 +153,32 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Extracts the non-merge commits from a commit sequence
+	 * Extracts all non-merge commits from the repository
 	 *
-	 * @param startCommitId the ID of the first commit in the commit sequence
-	 * @param endCommitId   the ID of the last commit in the commit sequence
+	 * @return the non-merge commits
+	 */
+	public List<RevCommit> extractNonMergeCommits() {
+		try {
+			final ObjectId head = repository.resolve(Constants.HEAD);
+			final Iterable<RevCommit> commits = new Git(repository).log().add(head).call();
+			final List<RevCommit> nonMergeCommits = StreamSupport.stream(commits.spliterator(), false)
+					.filter(commit -> commit.getParentCount() < 2)
+					.collect(Collectors.toList());
+			Collections.reverse(nonMergeCommits);
+			return nonMergeCommits;
+		} catch (Exception exception) {
+			Logger.error("An error occurred while extracting the non-merge commits from a change period");
+			exception.printStackTrace();
+			System.exit(1);
+			return null;
+		}
+	}
+
+	/**
+	 * Extracts the non-merge commits from a change period defined by its start commit ID and end commit ID
+	 *
+	 * @param startCommitId the ID of the first commit in the change period
+	 * @param endCommitId   the ID of the last commit in the change period
 	 * @return the extracted non-merge commits
 	 */
 	private Iterable<RevCommit> extractNonMergeCommits(String startCommitId, String endCommitId) {
@@ -179,7 +196,7 @@ public class ChangeDetector {
 			Collections.reverse(nonMergeCommits);
 			return nonMergeCommits;
 		} catch (Exception exception) {
-			Logger.error("An error occurred while extracting non-merge commits from a commit sequence");
+			Logger.error("An error occurred while extracting non-merge commits from a change period");
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
@@ -397,5 +414,19 @@ public class ChangeDetector {
 			Logger.error("Start time cannot be later than end time");
 			System.exit(1);
 		}
+	}
+
+	/**
+	 * Converts an iterable of commits to a list of commits
+	 *
+	 * @param commitIterable the iterable of commits
+	 * @return the list of commits
+	 */
+	private List<RevCommit> convertToCommitList(Iterable<RevCommit> commitIterable) {
+		final List<RevCommit> commitList = new ArrayList<>();
+		for (RevCommit commit : commitIterable) {
+			commitList.add(commit);
+		}
+		return commitList;
 	}
 }

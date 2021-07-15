@@ -27,7 +27,7 @@ public class EntropyComputer {
 			final int numberOfChangedLinesInChangedFile = entry.getValue();
 			Logger.debug("– " + changedFilePath + " (" + numberOfChangedLinesInChangedFile + " lines)");
 			if (numberOfChangedLinesInChangedFile <= 0) {
-				continue; // '0 changed lines' entries must be ignored, otherwise result will be undefined
+				continue; // '0 changed lines' entries (e.g., JARs) must be ignored, otherwise result will be undefined
 			}
 			final double changedLineRatio = (double) numberOfChangedLinesInChangedFile / numberOfChangedLinesInChangePeriod;
 			// calculate log2(changedLineRatio) indirectly using the log change of base formula
