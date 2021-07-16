@@ -28,44 +28,41 @@ public class RefactoringDetector {
 	}
 
 	/**
-	 * Counts the refactorings of each type detected between two commits (inclusive)
+	 * Generates a map representing a summary of the refactorings in a change period
 	 *
-	 * @param startCommitId the ID of the less recent commit
-	 * @param endCommitId   the ID of the more recent commit
-	 * @return a map containing key-value pairs of the form: refactoring type, total number of occurrences
+	 * @param startCommitId the ID of the first commit in the change period
+	 * @param endCommitId   the ID of the last commit in the change period
+	 * @return a map containing an entry for each refactoring type occurring in the change period
+	 * entries are of the form: [key = refactoring type, value = number of occurrences]
 	 */
 	public Map<String, Integer> summariseRefactorings(String startCommitId, String endCommitId) {
-		Iterable<Refactoring> refactorings = extractRefactorings(startCommitId, endCommitId);
-		Map<String, Integer> refactoringsMap = new HashMap<>();
+		final Iterable<Refactoring> refactorings = extractRefactorings(startCommitId, endCommitId);
+		final Map<String, Integer> changePeriodSummary = new HashMap<>();
 		for (Refactoring refactoring : refactorings) {
-			if (refactoringsMap.containsKey(refactoring.getName())) {
-				refactoringsMap.put(refactoring.getName(), refactoringsMap.get(refactoring.getName()) + 1);
+			if (changePeriodSummary.containsKey(refactoring.getName())) {
+				changePeriodSummary.put(refactoring.getName(), changePeriodSummary.get(refactoring.getName()) + 1);
 			} else {
-				refactoringsMap.put(refactoring.getName(), 1);
+				changePeriodSummary.put(refactoring.getName(), 1);
 			}
 		}
-		Logger.debug("Summary of refactorings over all commits in series");
-		for (Map.Entry<String, Integer> entry : refactoringsMap.entrySet()) {
-			Logger.debug(entry.getKey() + " (" + entry.getValue() + " occurrences)");
-		}
-		int numberOfRefactorings = refactoringsMap.values().stream().reduce(0, Integer::sum);
-		Logger.info("Total number of refactorings: " + numberOfRefactorings);
-
-		return refactoringsMap;
+		logChangePeriodSummary(changePeriodSummary);
+		return changePeriodSummary;
 	}
 
 	/**
-	 * Extracts the refactorings between two commits (inclusive)
+	 * Extracts the refactorings from a change period
 	 *
-	 * @param startCommitId the ID of the less recent commit
-	 * @param endCommitId   the ID of the more recent commit
+	 * @param startCommitId the ID of the first commit in the change period
+	 * @param endCommitId   the ID of the last commit in the change period
+	 * @return the extracted refactorings
 	 */
 	private Iterable<Refactoring> extractRefactorings(String startCommitId, String endCommitId) {
-		GitHistoryRefactoringMiner gitHistoryRefactoringMiner = new GitHistoryRefactoringMinerImpl();
-		List<Refactoring> refactorings = new ArrayList<>();
+		final GitHistoryRefactoringMiner gitHistoryRefactoringMiner = new GitHistoryRefactoringMinerImpl();
+		final List<Refactoring> refactorings = new ArrayList<>();
 		try {
 			gitHistoryRefactoringMiner.detectAtCommit(repository, startCommitId, refactoringHandler(refactorings));
-			gitHistoryRefactoringMiner.detectBetweenCommits(repository, startCommitId, endCommitId, refactoringHandler(refactorings));
+			gitHistoryRefactoringMiner.detectBetweenCommits(repository, startCommitId, endCommitId,
+					refactoringHandler(refactorings));
 		} catch (Exception exception) {
 			Logger.error("An error occurred while extracting refactorings");
 			exception.printStackTrace();
@@ -84,12 +81,30 @@ public class RefactoringDetector {
 		return new RefactoringHandler() {
 			@Override
 			public void handle(String commitId, List<Refactoring> refactoringsInCommit) {
-				Logger.debug("Refactorings in commit: " + commitId);
+				Logger.debug("Listing refactorings in commit: " + commitId);
 				for (Refactoring refactoring : refactoringsInCommit) {
-					Logger.debug(refactoring.toString());
+					Logger.debug("– " + refactoring.toString());
 					refactorings.add(refactoring);
 				}
 			}
 		};
+	}
+
+	/**
+	 * Logs summary information about the refactorings in a change period
+	 *
+	 * @param changePeriodSummary a map containing an entry for each refactoring type occurring in the change period
+	 *                            entries are of the form: [key = refactoring type, value = number of occurrences]
+	 */
+	private void logChangePeriodSummary(Map<String, Integer> changePeriodSummary) {
+		Logger.debug("Listing refactorings over all commits in change period");
+		for (Map.Entry<String, Integer> entry : changePeriodSummary.entrySet()) {
+			Logger.debug("— " + entry.getKey() + " (" + entry.getValue() + " occurrences)");
+		}
+		final int numberOfRefactorings = changePeriodSummary.values().stream().reduce(0, Integer::sum);
+		final int numberOfFilesContainingRefactorings = changePeriodSummary.keySet().size();
+		Logger.debug("Summary of refactorings in change period");
+		Logger.debug("— Number of refactorings: " + numberOfRefactorings);
+		Logger.debug("— Number of files containing refactorings: " + numberOfFilesContainingRefactorings);
 	}
 }

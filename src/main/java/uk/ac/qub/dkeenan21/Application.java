@@ -8,8 +8,8 @@ import java.util.Set;
 import static org.apache.log4j.LogManager.getRootLogger;
 
 public class Application {
-	private static final String repositoryPath = "../entropy-tester";
-	private static final String[] fileTypes = new String[]{"java", "txt"};
+	private static final String repositoryPath = "../refactoring-toy-example";
+	private static final String[] fileTypes = new String[]{};
 
 	public static void main(String[] args) {
 		getRootLogger().addAppender(new NullAppender()); // disable log4j output from JGit library

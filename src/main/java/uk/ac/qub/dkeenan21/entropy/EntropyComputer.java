@@ -21,11 +21,8 @@ public class EntropyComputer {
 	public double computeAbsoluteEntropy(Map<String, Integer> changePeriodSummary) {
 		final int numberOfChangedLinesInChangePeriod = changePeriodSummary.values().stream().reduce(0, Integer::sum);
 		double absoluteEntropy = 0.0;
-		Logger.debug("Listing changes over all commits in change period");
 		for (Map.Entry<String, Integer> entry : changePeriodSummary.entrySet()) {
-			final String changedFilePath = entry.getKey();
 			final int numberOfChangedLinesInChangedFile = entry.getValue();
-			Logger.debug("– " + changedFilePath + " (" + numberOfChangedLinesInChangedFile + " lines)");
 			if (numberOfChangedLinesInChangedFile <= 0) {
 				continue; // '0 changed lines' entries (e.g., JARs) must be ignored, otherwise result will be undefined
 			}
@@ -33,9 +30,6 @@ public class EntropyComputer {
 			// calculate log2(changedLineRatio) indirectly using the log change of base formula
 			absoluteEntropy -= changedLineRatio * Math.log10(changedLineRatio) / Math.log10(2);
 		}
-		Logger.debug("Change period summary");
-		Logger.debug("– Number of changed lines = " + numberOfChangedLinesInChangePeriod);
-		Logger.debug("– Number of changed files = " + changePeriodSummary.size());
 		return absoluteEntropy;
 	}
 
@@ -62,7 +56,6 @@ public class EntropyComputer {
 		final double absoluteEntropy = computeAbsoluteEntropy(changePeriodSummary);
 		// calculate log2(fileCountForNormalisation) indirectly using the log change of base formula
 		final double maxPotentialAbsoluteEntropyForFileCount = Math.log10(fileCountForNormalisation) / Math.log10(2);
-		Logger.debug("– Number of files used for normalisation = " + fileCountForNormalisation);
 		if (maxPotentialAbsoluteEntropyForFileCount <= 0) {
 			return 0.0; // special case — must return early to prevent undefined result
 		}

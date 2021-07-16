@@ -42,7 +42,7 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Generates a map representing a summary of a change period
+	 * Generates a map representing a summary of the changes in a change period
 	 *
 	 * @param startCommitId     the ID of the first commit in the change period
 	 * @param endCommitId       the ID of the last commit in the change period
@@ -73,6 +73,7 @@ public class ChangeDetector {
 					}
 				}
 			}
+			logChangePeriodSummary(changePeriodSummary);
 			return changePeriodSummary;
 		} catch (Exception exception) {
 			Logger.error("An error occurred while summarising the change period");
@@ -83,13 +84,13 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Counts the files which existed in the system at any point in a commit sequence
+	 * Counts the files which existed in the system at any point in a change period
 	 * Each unique file path is counted at most once
 	 *
-	 * @param startCommitId     the ID of the first commit in the commit sequence
-	 * @param endCommitId       the ID of the last commit in the commit sequence
+	 * @param startCommitId     the ID of the first commit in the change period
+	 * @param endCommitId       the ID of the last commit in the change period
 	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
-	 * @return the number of files which existed in the system at any point in the commit sequence
+	 * @return the number of files which existed in the system at any point in the change period
 	 */
 	public int countFilesInSystem(String startCommitId, String endCommitId, Set<String> fileTypeWhitelist) {
 		return enumerateFilesInSystem(startCommitId, endCommitId, fileTypeWhitelist).size();
@@ -118,7 +119,7 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Extracts the non-merge commits from a change period defined by its start commit ID and end commit ID
+	 * Extracts the non-merge commits from a change period
 	 *
 	 * @param startCommitId the ID of the first commit in the change period
 	 * @param endCommitId   the ID of the last commit in the change period
@@ -206,13 +207,13 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Enumerates the files which existed in the system at any point in a commit sequence
+	 * Enumerates the files which existed in the system at any point in a change period
 	 * Each unique file path is included at most once
 	 *
-	 * @param startCommitId     the ID of the first commit in the commit sequence
-	 * @param endCommitId       the ID of the last commit in the commit sequence
+	 * @param startCommitId     the ID of the first commit in the change period
+	 * @param endCommitId       the ID of the last commit in the change period
 	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
-	 * @return the paths of the files which existed in the system at any point in the commit sequence
+	 * @return the paths of the files which existed in the system at any point in the change period
 	 */
 	private Set<String> enumerateFilesInSystem(String startCommitId, String endCommitId, Set<String> fileTypeWhitelist) {
 		final Iterable<RevCommit> commits = extractNonMergeCommits(startCommitId, endCommitId);
@@ -300,5 +301,24 @@ public class ChangeDetector {
 			exception.printStackTrace();
 			System.exit(1);
 		}
+	}
+
+	/**
+	 * Logs summary information about the changes in a change period
+	 *
+	 * @param changePeriodSummary a map containing an entry for each changed file in the change period
+	 *                            entries are of the form [key = path, value = number of changed lines]
+	 */
+	private void logChangePeriodSummary(Map<String, Integer> changePeriodSummary) {
+		final int numberOfChangedLinesInChangePeriod = changePeriodSummary.values().stream().reduce(0, Integer::sum);
+		Logger.debug("Listing changes over all commits in change period");
+		for (Map.Entry<String, Integer> entry : changePeriodSummary.entrySet()) {
+			final String changedFilePath = entry.getKey();
+			final int numberOfChangedLinesInChangedFile = entry.getValue();
+			Logger.debug("– " + changedFilePath + " (" + numberOfChangedLinesInChangedFile + " lines)");
+		}
+		Logger.debug("Summary of changes in change period");
+		Logger.debug("– Number of changed lines = " + numberOfChangedLinesInChangePeriod);
+		Logger.debug("– Number of changed files = " + changePeriodSummary.size());
 	}
 }
