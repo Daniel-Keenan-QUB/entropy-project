@@ -64,11 +64,29 @@ public class RefactoringDetector {
 			gitHistoryRefactoringMiner.detectBetweenCommits(repository, startCommitId, endCommitId,
 					refactoringHandler(refactorings));
 		} catch (Exception exception) {
-			Logger.error("An error occurred while extracting refactorings");
+			Logger.error("An error occurred while extracting the refactorings from a change period");
 			exception.printStackTrace();
 			System.exit(1);
 		}
 		return refactorings;
+	}
+
+	/**
+	 * Logs summary information about the refactorings in a change period
+	 *
+	 * @param changePeriodSummary a map containing an entry for each refactoring type occurring in the change period
+	 *                            entries are of the form: [key = refactoring type, value = number of occurrences]
+	 */
+	private void logChangePeriodSummary(Map<String, Integer> changePeriodSummary) {
+		Logger.debug("Listing refactorings over all commits in change period");
+		for (Map.Entry<String, Integer> entry : changePeriodSummary.entrySet()) {
+			Logger.debug("— " + entry.getKey() + " (" + entry.getValue() + " occurrences)");
+		}
+		final int numberOfRefactorings = changePeriodSummary.values().stream().reduce(0, Integer::sum);
+		final int numberOfFilesContainingRefactorings = changePeriodSummary.keySet().size();
+		Logger.debug("Summary of refactorings in change period");
+		Logger.debug("— Number of refactorings: " + numberOfRefactorings);
+		Logger.debug("— Number of files containing refactorings: " + numberOfFilesContainingRefactorings);
 	}
 
 	/**
@@ -88,23 +106,5 @@ public class RefactoringDetector {
 				}
 			}
 		};
-	}
-
-	/**
-	 * Logs summary information about the refactorings in a change period
-	 *
-	 * @param changePeriodSummary a map containing an entry for each refactoring type occurring in the change period
-	 *                            entries are of the form: [key = refactoring type, value = number of occurrences]
-	 */
-	private void logChangePeriodSummary(Map<String, Integer> changePeriodSummary) {
-		Logger.debug("Listing refactorings over all commits in change period");
-		for (Map.Entry<String, Integer> entry : changePeriodSummary.entrySet()) {
-			Logger.debug("— " + entry.getKey() + " (" + entry.getValue() + " occurrences)");
-		}
-		final int numberOfRefactorings = changePeriodSummary.values().stream().reduce(0, Integer::sum);
-		final int numberOfFilesContainingRefactorings = changePeriodSummary.keySet().size();
-		Logger.debug("Summary of refactorings in change period");
-		Logger.debug("— Number of refactorings: " + numberOfRefactorings);
-		Logger.debug("— Number of files containing refactorings: " + numberOfFilesContainingRefactorings);
 	}
 }

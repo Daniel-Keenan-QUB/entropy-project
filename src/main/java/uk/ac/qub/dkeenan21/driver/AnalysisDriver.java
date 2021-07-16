@@ -32,10 +32,10 @@ public class AnalysisDriver {
 	}
 
 	/**
-	 * Computes entropy and detects refactorings for each change sequence in the repository
+	 * Computes entropy and detects refactorings for each change period in the version history of the repository
 	 * The final (most recent) change period may have fewer commits than the defined change period size
 	 *
-	 * @param changePeriodSize the number of commits in one change period
+	 * @param changePeriodSize the number of commits defining one change period
 	 */
 	public void analyse(int changePeriodSize) {
 		final List<RevCommit> nonMergeCommits = changeDetector.extractNonMergeCommits();
@@ -49,11 +49,12 @@ public class AnalysisDriver {
 				i = numberOfNonMergeCommits - 1;
 			}
 			final String endCommitId = nonMergeCommits.get(i).getName();
-			final Map<String, Integer> changePeriodSummary = changeDetector.summariseChanges(startCommitId, endCommitId,
+			final Map<String, Integer> changeSummary = changeDetector.summariseChanges(startCommitId, endCommitId,
 					fileTypeWhitelist);
-			final double absoluteEntropy = entropyComputer.computeAbsoluteEntropy(changePeriodSummary);
+			final double absoluteEntropy = entropyComputer.computeAbsoluteEntropy(changeSummary);
 			Logger.info("Absolute entropy = " + String.format("%.2f", absoluteEntropy));
-			refactoringDetector.summariseRefactorings(startCommitId, endCommitId);
+			final Map<String, Integer> refactoringsSummary = refactoringDetector.summariseRefactorings(startCommitId,
+					endCommitId);
 		}
 	}
 }

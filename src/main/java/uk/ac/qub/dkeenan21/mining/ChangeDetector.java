@@ -84,19 +84,6 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Counts the files which existed in the system at any point in a change period
-	 * Each unique file path is counted at most once
-	 *
-	 * @param startCommitId     the ID of the first commit in the change period
-	 * @param endCommitId       the ID of the last commit in the change period
-	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
-	 * @return the number of files which existed in the system at any point in the change period
-	 */
-	public int countFilesInSystem(String startCommitId, String endCommitId, Set<String> fileTypeWhitelist) {
-		return enumerateFilesInSystem(startCommitId, endCommitId, fileTypeWhitelist).size();
-	}
-
-	/**
 	 * Extracts all non-merge commits from the repository
 	 *
 	 * @return the non-merge commits
@@ -111,7 +98,7 @@ public class ChangeDetector {
 			Collections.reverse(nonMergeCommits);
 			return nonMergeCommits;
 		} catch (Exception exception) {
-			Logger.error("An error occurred while extracting the non-merge commits from a change period");
+			Logger.error("An error occurred while extracting the non-merge commits from the repository");
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
@@ -140,7 +127,7 @@ public class ChangeDetector {
 			Collections.reverse(nonMergeCommits);
 			return nonMergeCommits;
 		} catch (Exception exception) {
-			Logger.error("An error occurred while extracting non-merge commits from a change period");
+			Logger.error("An error occurred while extracting the non-merge commits from a change period");
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
@@ -207,6 +194,19 @@ public class ChangeDetector {
 	}
 
 	/**
+	 * Counts the files which existed in the system at any point in a change period
+	 * Each unique file path is counted at most once
+	 *
+	 * @param startCommitId     the ID of the first commit in the change period
+	 * @param endCommitId       the ID of the last commit in the change period
+	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
+	 * @return the number of files which existed in the system at any point in the change period
+	 */
+	public int countFilesInSystem(String startCommitId, String endCommitId, Set<String> fileTypeWhitelist) {
+		return enumerateFilesInSystem(startCommitId, endCommitId, fileTypeWhitelist).size();
+	}
+
+	/**
 	 * Enumerates the files which existed in the system at any point in a change period
 	 * Each unique file path is included at most once
 	 *
@@ -251,38 +251,6 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Creates and configures a tree filter enforcing a whitelist of file types
-	 *
-	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
-	 * @return a tree filter enforcing the whitelist of file types
-	 */
-	private TreeFilter generateFileTypeWhitelistTreeFilter(Set<String> fileTypeWhitelist) {
-		final List<TreeFilter> treeFilters = new ArrayList<>();
-		for (String fileType : fileTypeWhitelist) {
-			final TreeFilter treeFilter = PathSuffixFilter.create(fileType);
-			treeFilters.add(treeFilter);
-		}
-		if (treeFilters.size() == 0) {
-			return TreeFilter.ALL;
-		} else if (treeFilters.size() == 1) {
-			return treeFilters.get(0);
-		} else {
-			return OrTreeFilter.create(treeFilters.toArray(new TreeFilter[0]));
-		}
-	}
-
-	/**
-	 * Creates and configures a diff formatter
-	 *
-	 * @return the diff formatter
-	 */
-	private DiffFormatter generateDiffFormatter() {
-		final DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
-		diffFormatter.setRepository(repository);
-		return diffFormatter;
-	}
-
-	/**
 	 * Validates the time order of two commits
 	 *
 	 * @param startCommitId the ID of the commit which should have an earlier timestamp
@@ -320,5 +288,37 @@ public class ChangeDetector {
 		Logger.debug("Summary of changes in change period");
 		Logger.debug("– Number of changed lines = " + numberOfChangedLinesInChangePeriod);
 		Logger.debug("– Number of changed files = " + changePeriodSummary.size());
+	}
+
+	/**
+	 * Creates and configures a tree filter enforcing a whitelist of file types
+	 *
+	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
+	 * @return a tree filter enforcing the whitelist of file types
+	 */
+	private TreeFilter generateFileTypeWhitelistTreeFilter(Set<String> fileTypeWhitelist) {
+		final List<TreeFilter> treeFilters = new ArrayList<>();
+		for (String fileType : fileTypeWhitelist) {
+			final TreeFilter treeFilter = PathSuffixFilter.create(fileType);
+			treeFilters.add(treeFilter);
+		}
+		if (treeFilters.size() == 0) {
+			return TreeFilter.ALL;
+		} else if (treeFilters.size() == 1) {
+			return treeFilters.get(0);
+		} else {
+			return OrTreeFilter.create(treeFilters.toArray(new TreeFilter[0]));
+		}
+	}
+
+	/**
+	 * Creates and configures a diff formatter
+	 *
+	 * @return the diff formatter
+	 */
+	private DiffFormatter generateDiffFormatter() {
+		final DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
+		diffFormatter.setRepository(repository);
+		return diffFormatter;
 	}
 }

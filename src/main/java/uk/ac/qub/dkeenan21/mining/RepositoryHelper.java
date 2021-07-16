@@ -7,7 +7,7 @@ import org.tinylog.Logger;
 import java.io.File;
 
 /**
- * Provides a helper method for generating a Git repository representation
+ * A helper for generating a Git repository representation
  */
 public class RepositoryHelper {
 	/**

@@ -9,7 +9,7 @@ import static org.apache.log4j.LogManager.getRootLogger;
 
 public class Application {
 	private static final String repositoryPath = "../refactoring-toy-example";
-	private static final String[] fileTypes = new String[]{};
+	private static final String[] fileTypes = new String[]{"java"};
 
 	public static void main(String[] args) {
 		getRootLogger().addAppender(new NullAppender()); // disable log4j output from JGit library
