@@ -27,8 +27,10 @@ test {
 
 jar {
     manifest {
-        attributes('Class-Path': configurations.compile.collect {it.getName()}.join(' '))
         attributes('Main-Class': 'uk/ac/qub/dkeenan21/Application')
+    }
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
 
