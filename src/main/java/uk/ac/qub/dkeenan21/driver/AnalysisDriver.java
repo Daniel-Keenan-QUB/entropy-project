@@ -36,6 +36,10 @@ public class AnalysisDriver {
 	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
 	 */
 	public void analyse(int changePeriodSize, Set<String> fileTypeWhitelist) {
+		if (changePeriodSize < 1) {
+			Logger.error("Change period size must be at least 1");
+			System.exit(1);
+		}
 		final List<RevCommit> nonMergeCommits = changeDetector.extractNonMergeCommits();
 		final int numberOfNonMergeCommits = nonMergeCommits.size();
 		final EntropyComputer entropyComputer = new EntropyComputer();

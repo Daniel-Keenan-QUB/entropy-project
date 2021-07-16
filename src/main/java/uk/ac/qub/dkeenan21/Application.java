@@ -63,7 +63,7 @@ public class Application {
 				.longOpt("file-type-whitelist")
 				.argName("WHITELIST")
 				.desc("only consider the file type extensions specified in space-separated list WHITELIST")
-				.hasArgs() // sets that number of arguments is unlimited
+				.hasArgs() // allows unlimited number of arguments
 				.build();
 		final Options options = new Options();
 		options.addOption(repositoryPathOption);
