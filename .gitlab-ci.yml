@@ -30,3 +30,6 @@ build:
   stage: build
   script:
     - ./gradlew assemble
+  artifacts:
+    paths:
+      - build/libs/csc4006-project-1.0-SNAPSHOT.jar

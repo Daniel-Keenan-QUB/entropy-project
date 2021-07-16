@@ -13,6 +13,6 @@ public class Application {
 
 	public static void main(String[] args) {
 		getRootLogger().addAppender(new NullAppender()); // disable log4j output from JGit library
-		new AnalysisDriver(repositoryPath, Set.of(fileTypes)).analyse(1);
+		new AnalysisDriver(repositoryPath).analyse(1, Set.of(fileTypes));
 	}
 }

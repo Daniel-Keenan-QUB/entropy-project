@@ -15,7 +15,6 @@ import java.util.Set;
  * Analyses the version history of a repository for trends in entropy and refactorings
  */
 public class AnalysisDriver {
-	private final Set<String> fileTypeWhitelist;
 	private final ChangeDetector changeDetector;
 	private final RefactoringDetector refactoringDetector;
 
@@ -23,10 +22,8 @@ public class AnalysisDriver {
 	 * Constructor which accepts a path to a repository and a file type whitelist
 	 *
 	 * @param repositoryPath    a path to the repository
-	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
 	 */
-	public AnalysisDriver(String repositoryPath, Set<String> fileTypeWhitelist) {
-		this.fileTypeWhitelist = new HashSet<>(fileTypeWhitelist);
+	public AnalysisDriver(String repositoryPath) {
 		changeDetector = new ChangeDetector(repositoryPath);
 		refactoringDetector = new RefactoringDetector(repositoryPath);
 	}
@@ -36,8 +33,9 @@ public class AnalysisDriver {
 	 * The final (most recent) change period may have fewer commits than the defined change period size
 	 *
 	 * @param changePeriodSize the number of commits defining one change period
+	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
 	 */
-	public void analyse(int changePeriodSize) {
+	public void analyse(int changePeriodSize, Set<String> fileTypeWhitelist) {
 		final List<RevCommit> nonMergeCommits = changeDetector.extractNonMergeCommits();
 		final int numberOfNonMergeCommits = nonMergeCommits.size();
 		final EntropyComputer entropyComputer = new EntropyComputer();
@@ -49,9 +47,9 @@ public class AnalysisDriver {
 				i = numberOfNonMergeCommits - 1;
 			}
 			final String endCommitId = nonMergeCommits.get(i).getName();
-			final Map<String, Integer> changeSummary = changeDetector.summariseChanges(startCommitId, endCommitId,
+			final Map<String, Integer> changesSummary = changeDetector.summariseChanges(startCommitId, endCommitId,
 					fileTypeWhitelist);
-			final double absoluteEntropy = entropyComputer.computeAbsoluteEntropy(changeSummary);
+			final double absoluteEntropy = entropyComputer.computeAbsoluteEntropy(changesSummary);
 			Logger.info("Absolute entropy = " + String.format("%.2f", absoluteEntropy));
 			final Map<String, Integer> refactoringsSummary = refactoringDetector.summariseRefactorings(startCommitId,
 					endCommitId);
