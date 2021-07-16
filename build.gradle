@@ -27,7 +27,8 @@ test {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'uk/ac/qub/dkeenan21/Application'
+        attributes('Class-Path': configurations.compile.collect {it.getName()}.join(' '))
+        attributes('Main-Class': 'uk/ac/qub/dkeenan21/Application')
     }
 }
 
