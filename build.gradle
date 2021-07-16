@@ -25,6 +25,12 @@ test {
     useJUnitPlatform()
 }
 
+jar {
+    manifest {
+        attributes 'Main-Class': 'uk/ac/qub/dkeenan21/Application.java'
+    }
+}
+
 spotbugs {
     excludeFilter = file("spotbugs-exclude.xml")
 }
