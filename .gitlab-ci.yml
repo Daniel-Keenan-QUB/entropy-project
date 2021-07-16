@@ -29,7 +29,7 @@ test:
 build:
   stage: build
   script:
-    - ./gradlew assemble
+    - ./gradlew shadow
   artifacts:
     paths:
-      - build/libs/csc4006-project-1.0-SNAPSHOT.jar
+      - build/libs/csc4006-project-1.0-SNAPSHOT-all.jar

@@ -17,7 +17,11 @@ public class Application {
 			final CommandLine commandLine = new DefaultParser().parse(options, args);
 			final String repositoryPath = commandLine.getOptionValue("repository-path");
 			final int changePeriodSize = Integer.parseInt(commandLine.getOptionValue("change-period-size"));
-			final String[] fileTypeWhitelist = commandLine.getOptionValue("file-type-whitelist").split(" ");
+			String[] fileTypeWhitelist = new String[0];
+			if (commandLine.getOptionValue("file-type-whitelist") != null &&
+					!commandLine.getOptionValue("file-type-whitelist").isBlank()) {
+				fileTypeWhitelist = commandLine.getOptionValue("file-type-whitelist").split(" ");
+			}
 
 			Logger.info("Beginning analysis with program arguments");
 			Logger.info("— Repository path: " + repositoryPath);
@@ -60,7 +64,6 @@ public class Application {
 				.argName("WHITELIST")
 				.desc("only consider the file type extensions specified in space-separated list WHITELIST")
 				.hasArgs() // sets that number of arguments is unlimited
-				.required()
 				.build();
 		final Options options = new Options();
 		options.addOption(repositoryPathOption);
