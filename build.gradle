@@ -27,7 +27,7 @@ test {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'uk/ac/qub/dkeenan21/Application.java'
+        attributes 'Main-Class': 'uk/ac/qub/dkeenan21/Application'
     }
 }
 
