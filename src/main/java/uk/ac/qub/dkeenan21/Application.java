@@ -20,7 +20,7 @@ public class Application {
 			String[] fileTypeWhitelist = new String[0];
 			if (commandLine.getOptionValue("file-type-whitelist") != null &&
 					!commandLine.getOptionValue("file-type-whitelist").isBlank()) {
-				fileTypeWhitelist = commandLine.getOptionValue("file-type-whitelist").split(" ");
+				fileTypeWhitelist = commandLine.getOptionValue("file-type-whitelist").trim().split(" ");
 			}
 
 			Logger.info("Beginning analysis with program arguments");
@@ -62,7 +62,8 @@ public class Application {
 		final Option fileTypeWhiteListOption = Option.builder("wl")
 				.longOpt("file-type-whitelist")
 				.argName("WHITELIST")
-				.desc("only consider the file type extensions specified in space-separated list WHITELIST")
+				.desc("only consider the file type extensions specified in space-separated list WHITELIST (must be " +
+						"wrapped in quotemarks)")
 				.hasArgs() // allows unlimited number of arguments
 				.build();
 		final Options options = new Options();
