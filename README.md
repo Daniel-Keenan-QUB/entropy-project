@@ -5,7 +5,6 @@ This repository holds the source code for the application developed in support o
 The application is a software tool which mines the version history of a Git repository and for each change period in its evolution:
 
 * computes the source code change entropy
-  
 * detects and counts the refactorings applied
 
 The project uses the Gradle build tool and features a GitLab CI pipeline.
