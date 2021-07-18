@@ -192,63 +192,6 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Counts the files which existed in the system at any point in a change period
-	 * Each unique file path is counted at most once
-	 *
-	 * @param startCommitId     the ID of the first commit in the change period
-	 * @param endCommitId       the ID of the last commit in the change period
-	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
-	 * @return the number of files which existed in the system at any point in the change period
-	 */
-	public int countFilesInSystem(String startCommitId, String endCommitId, Set<String> fileTypeWhitelist) {
-		return enumerateFilesInSystem(startCommitId, endCommitId, fileTypeWhitelist).size();
-	}
-
-	/**
-	 * Enumerates the files which existed in the system at any point in a change period
-	 * Each unique file path is included at most once
-	 *
-	 * @param startCommitId     the ID of the first commit in the change period
-	 * @param endCommitId       the ID of the last commit in the change period
-	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
-	 * @return the paths of the files which existed in the system at any point in the change period
-	 */
-	private Set<String> enumerateFilesInSystem(String startCommitId, String endCommitId, Set<String> fileTypeWhitelist) {
-		final Iterable<RevCommit> commits = extractNonMergeCommits(startCommitId, endCommitId);
-		final Set<String> pathsOfFilesInSystem = new HashSet<>();
-		for (RevCommit commit : commits) {
-			final Set<String> pathsOfFilesInSystemAtCommit = enumerateFilesInSystem(commit, fileTypeWhitelist);
-			pathsOfFilesInSystem.addAll(pathsOfFilesInSystemAtCommit);
-		}
-		return pathsOfFilesInSystem;
-	}
-
-	/**
-	 * Enumerates the files in the system at a commit
-	 *
-	 * @param commit            the commit
-	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
-	 * @return the paths of the files in the system at the commit
-	 */
-	private Set<String> enumerateFilesInSystem(RevCommit commit, Set<String> fileTypeWhitelist) {
-		final Set<String> pathsOfFilesInSystem = new HashSet<>();
-		try (final TreeWalk treeWalk = new TreeWalk(repository)) {
-			treeWalk.addTree(commit.getTree());
-			treeWalk.setRecursive(true);
-			treeWalk.setFilter(generateFileTypeWhitelistTreeFilter(fileTypeWhitelist));
-			while (treeWalk.next()) {
-				pathsOfFilesInSystem.add(treeWalk.getPathString());
-			}
-		} catch (Exception exception) {
-			Logger.error("An error occurred while enumerating the files in the system at a commit");
-			exception.printStackTrace();
-			System.exit(1);
-			return null;
-		}
-		return pathsOfFilesInSystem;
-	}
-
-	/**
 	 * Validates the time order of two commits
 	 *
 	 * @param startCommitId the ID of the commit which should have an earlier timestamp

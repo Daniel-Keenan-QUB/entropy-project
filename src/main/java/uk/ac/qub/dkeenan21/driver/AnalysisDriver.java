@@ -6,7 +6,6 @@ import uk.ac.qub.dkeenan21.entropy.EntropyComputer;
 import uk.ac.qub.dkeenan21.mining.ChangeDetector;
 import uk.ac.qub.dkeenan21.mining.RefactoringDetector;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,8 +52,8 @@ public class AnalysisDriver {
 			final String endCommitId = nonMergeCommits.get(i).getName();
 			final Map<String, Integer> changesSummary = changeDetector.summariseChanges(startCommitId, endCommitId,
 					fileTypeWhitelist);
-			final double absoluteEntropy = entropyComputer.computeAbsoluteEntropy(changesSummary);
-			Logger.info("Absolute entropy = " + String.format("%.2f", absoluteEntropy));
+			final double entropy = entropyComputer.computeEntropy(changesSummary);
+			Logger.info("Entropy = " + String.format("%.2f", entropy));
 			final Map<String, Integer> refactoringsSummary = refactoringDetector.summariseRefactorings(startCommitId,
 					endCommitId);
 		}

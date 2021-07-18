@@ -26,7 +26,7 @@ public class Application {
 			Logger.info("Beginning analysis with program arguments");
 			Logger.info("— Repository path: " + repositoryPath);
 			Logger.info("— Change period size: " + changePeriodSize);
-			Logger.info("— File type whitelist = " + Arrays.toString(fileTypeWhitelist));
+			Logger.info("— File type whitelist: " + Arrays.toString(fileTypeWhitelist));
 
 			getRootLogger().addAppender(new NullAppender()); // disable log4j output from JGit library
 			final AnalysisDriver analysisDriver = new AnalysisDriver(repositoryPath);
@@ -63,8 +63,8 @@ public class Application {
 				.longOpt("file-type-whitelist")
 				.argName("WHITELIST")
 				.desc("only consider the file type extensions specified in space-separated list WHITELIST (must be " +
-						"wrapped in quotemarks)")
-				.hasArgs() // allows unlimited number of arguments
+						"enclosed in quotemarks)")
+				.hasArgs() // allows an unlimited number of arguments
 				.build();
 		final Options options = new Options();
 		options.addOption(repositoryPathOption);
