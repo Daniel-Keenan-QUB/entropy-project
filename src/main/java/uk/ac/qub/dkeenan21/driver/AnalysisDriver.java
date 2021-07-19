@@ -6,7 +6,10 @@ import uk.ac.qub.dkeenan21.entropy.EntropyComputer;
 import uk.ac.qub.dkeenan21.mining.ChangeDetector;
 import uk.ac.qub.dkeenan21.mining.RefactoringDetector;
 
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -66,7 +69,8 @@ public class AnalysisDriver {
 		final EntropyComputer entropyComputer = new EntropyComputer();
 
 		final String resultsFileName = "results.csv";
-		try (PrintWriter printWriter = new PrintWriter(resultsFileName)) {
+		try (final PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(new FileOutputStream(resultsFileName),
+				StandardCharsets.UTF_8), true)) {
 			writeHeaderLineToResultsFile(printWriter);
 			for (int i = 0; i < numberOfNonMergeCommits; i++) {
 				final String startCommitId = nonMergeCommits.get(i).getName();
@@ -118,17 +122,12 @@ public class AnalysisDriver {
 	 */
 	private void writeResultsLineToResultsFile(PrintWriter printWriter, String startCommitId, String endCommitId,
 											   String entropyString, Map<String, Integer> refactoringsSummary) {
-		try {
-			final StringBuilder resultsLine = new StringBuilder(startCommitId + "," + endCommitId + "," + entropyString);
-			for (String refactoringType : refactoringTypes) {
-				final String columnValueToAdd = refactoringsSummary.get(refactoringType) != null ?
-						String.valueOf(refactoringsSummary.get(refactoringType)) : "";
-				resultsLine.append(",").append(columnValueToAdd);
-			}
-			printWriter.println(resultsLine);
-		} catch (Exception exception) {
-			Logger.error("An error occurred while writing to the results file");
-			System.exit(1);
+		final StringBuilder resultsLine = new StringBuilder(startCommitId + "," + endCommitId + "," + entropyString);
+		for (String refactoringType : refactoringTypes) {
+			final String columnValueToAdd = refactoringsSummary.get(refactoringType) != null ?
+					String.valueOf(refactoringsSummary.get(refactoringType)) : "";
+			resultsLine.append(",").append(columnValueToAdd);
 		}
+		printWriter.println(resultsLine);
 	}
 }
