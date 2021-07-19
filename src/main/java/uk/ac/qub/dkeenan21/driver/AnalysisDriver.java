@@ -67,10 +67,11 @@ public class AnalysisDriver {
 		final List<RevCommit> nonMergeCommits = changeDetector.extractNonMergeCommits();
 		final int numberOfNonMergeCommits = nonMergeCommits.size();
 		final EntropyComputer entropyComputer = new EntropyComputer();
-
 		final String resultsFileName = "results.csv";
-		try (final PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(new FileOutputStream(resultsFileName),
-				StandardCharsets.UTF_8), true)) {
+		try {
+			final FileOutputStream fileOutputStream = new FileOutputStream(resultsFileName);
+			final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8);
+			final PrintWriter printWriter = new PrintWriter(outputStreamWriter, true);
 			writeHeaderLineToResultsFile(printWriter);
 			for (int i = 0; i < numberOfNonMergeCommits; i++) {
 				final String startCommitId = nonMergeCommits.get(i).getName();
@@ -89,6 +90,7 @@ public class AnalysisDriver {
 						endCommitId);
 				writeResultsLineToResultsFile(printWriter, startCommitId, endCommitId, entropyString, refactoringsSummary);
 			}
+			printWriter.close();
 		} catch (Exception exception) {
 			Logger.error("An error occurred while writing to the results file");
 			System.exit(1);
