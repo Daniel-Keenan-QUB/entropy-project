@@ -101,13 +101,8 @@ public class AnalysisDriver {
 	 * @param printWriter the writer for the results file
 	 */
 	private void writeHeaderLineToResultsFile(PrintWriter printWriter) {
-		try {
-			final String headerLine = "Start Commit,End Commit,Entropy," + String.join(",", refactoringTypes);
-			printWriter.println(headerLine);
-		} catch (Exception exception) {
-			Logger.error("An error occurred while writing to the results file");
-			System.exit(1);
-		}
+		final String headerLine = "Start Commit,End Commit,Entropy," + String.join(",", refactoringTypes);
+		printWriter.println(headerLine);
 	}
 
 	/**
