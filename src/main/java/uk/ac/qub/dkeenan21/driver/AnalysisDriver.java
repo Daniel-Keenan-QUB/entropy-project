@@ -6,19 +6,37 @@ import uk.ac.qub.dkeenan21.entropy.EntropyComputer;
 import uk.ac.qub.dkeenan21.mining.ChangeDetector;
 import uk.ac.qub.dkeenan21.mining.RefactoringDetector;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.PrintWriter;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
- * Analyses the version history of a repository for trends in entropy and refactorings
+ * Analyses the version history of a repository
+ * Records the entropy and number of each type of refactoring occurring in each change period
  */
 public class AnalysisDriver {
 	private final ChangeDetector changeDetector;
 	private final RefactoringDetector refactoringDetector;
+
+	// refactoring types recognised by the RefactoringMiner library — enumerated here for results-writing purposes
+	private static final String[] refactoringTypes = {"Extract Method", "Rename Class", "Move Attribute",
+			"Move And Rename Attribute", "Replace Attribute", "Rename Method", "Inline Method", "Move Method",
+			"Move And Rename Method", "Pull Up Method", "Move Class", "Move And Rename Class",
+			"Move Source Folder", "Pull Up Attribute", "Push Down Attribute", "Push Down Method",
+			"Extract Interface", "Extract Superclass", "Extract Subclass", "Extract Class", "Merge Method",
+			"Extract And Move Method", "Move And Inline Method", "Convert Anonymous Class to Type",
+			"Introduce Polymorphism", "Change Package", "Extract Variable", "Extract Attribute",
+			"Inline Variable", "Rename Variable", "Rename Parameter", "Rename Attribute", "Merge Variable",
+			"Merge Parameter", "Merge Attribute", "Split Variable", "Split Parameter", "Split Attribute",
+			"Replace Variable With Attribute", "Parameterize Variable", "Change Return Type",
+			"Change Variable Type", "Change Parameter Type", "Change Attribute Type", "Add Method Annotation",
+			"Remove Method Annotation", "Modify Method Annotation", "Add Attribute Annotation",
+			"Remove Attribute Annotation", "Modify Attribute Annotation", "Add Class Annotation",
+			"Remove Class Annotation", "Modify Class Annotation", "Add Parameter Annotation",
+			"Remove Parameter Annotation", "Modify Parameter Annotation", "Add Parameter", "Remove Parameter",
+			"Reorder Parameter", "Add Variable Annotation", "Remove Variable Annotation",
+			"Modify Variable Annotation", "Add Thrown Exception Type", "Remove Thrown Exception Type",
+			"Change Thrown Exception Type", "Change Method Access Modifier"
+	};
 
 	/**
 	 * Constructor which accepts a path to a repository and a file type whitelist
@@ -80,7 +98,7 @@ public class AnalysisDriver {
 	 */
 	private void writeHeaderLineToResultsFile(PrintWriter printWriter) {
 		try {
-			final String headerLine = "Start Commit,End Commit,Entropy";
+			final String headerLine = "Start Commit,End Commit,Entropy," + String.join(",", refactoringTypes);
 			printWriter.println(headerLine);
 		} catch (Exception exception) {
 			Logger.error("An error occurred while writing to the results file");
@@ -101,7 +119,12 @@ public class AnalysisDriver {
 	private void writeResultsLineToResultsFile(PrintWriter printWriter, String startCommitId, String endCommitId,
 											   String entropyString, Map<String, Integer> refactoringsSummary) {
 		try {
-			final String resultsLine = startCommitId + "," + endCommitId + "," + entropyString;
+			final StringBuilder resultsLine = new StringBuilder(startCommitId + "," + endCommitId + "," + entropyString);
+			for (String refactoringType : refactoringTypes) {
+				final String columnValueToAdd = refactoringsSummary.get(refactoringType) != null ?
+						String.valueOf(refactoringsSummary.get(refactoringType)) : "";
+				resultsLine.append(",").append(columnValueToAdd);
+			}
 			printWriter.println(resultsLine);
 		} catch (Exception exception) {
 			Logger.error("An error occurred while writing to the results file");

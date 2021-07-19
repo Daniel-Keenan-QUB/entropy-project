@@ -1,7 +1,5 @@
 package uk.ac.qub.dkeenan21.entropy;
 
-import org.tinylog.Logger;
-
 import java.util.Map;
 
 /**

@@ -7,10 +7,7 @@ import org.refactoringminer.api.RefactoringHandler;
 import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl;
 import org.tinylog.Logger;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Detects refactorings in the version history of a Git repository (Java projects only)
@@ -66,7 +63,8 @@ public class RefactoringDetector {
 		} catch (Exception exception) {
 			Logger.error("An error occurred while extracting the refactorings from a change period");
 			exception.printStackTrace();
-			System.exit(1);
+			// return no refactorings only for this change period, allowing processing of other change periods to continue
+			return new HashSet<>();
 		}
 		return refactorings;
 	}
