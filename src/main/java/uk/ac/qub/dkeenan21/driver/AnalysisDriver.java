@@ -84,7 +84,7 @@ public class AnalysisDriver {
 				final Map<String, Integer> changesSummary = changeDetector.summariseChanges(startCommitId, endCommitId,
 						fileTypeWhitelist);
 				final double entropy = entropyComputer.computeEntropy(changesSummary);
-				final String entropyString = String.format("%.2f", entropy);
+				final String entropyString = String.format("%.4f", entropy);
 				Logger.info("Entropy = " + entropyString);
 				final Map<String, Integer> refactoringsSummary = refactoringDetector.summariseRefactorings(startCommitId,
 						endCommitId);
