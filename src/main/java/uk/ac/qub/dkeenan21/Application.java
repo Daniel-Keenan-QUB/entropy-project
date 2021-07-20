@@ -10,7 +10,15 @@ import java.util.Set;
 
 import static org.apache.log4j.LogManager.getRootLogger;
 
+/**
+ * Entrypoint for the program, responsible for parsing and validating the command-line arguments and then
+ * delegating responsibility for more specific functionalities to the other classes
+ */
 public class Application {
+	/**
+	 * Entrypoint for the program
+	 * @param args the command-line arguments passed to the program
+	 */
 	public static void main(String[] args) {
 		final Options options = configureCommandLineOptions();
 		try {
