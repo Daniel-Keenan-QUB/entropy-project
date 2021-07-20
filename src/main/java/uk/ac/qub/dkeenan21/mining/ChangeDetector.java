@@ -40,6 +40,28 @@ public class ChangeDetector {
 	}
 
 	/**
+	 * Extracts all non-merge commits from the repository
+	 *
+	 * @return the non-merge commits
+	 */
+	public List<RevCommit> extractNonMergeCommits() {
+		try {
+			final ObjectId head = repository.resolve(Constants.HEAD);
+			final Iterable<RevCommit> commits = new Git(repository).log().add(head).call();
+			final List<RevCommit> nonMergeCommits = StreamSupport.stream(commits.spliterator(), false)
+					.filter(commit -> commit.getParentCount() < 2)
+					.collect(Collectors.toList());
+			Collections.reverse(nonMergeCommits);
+			return nonMergeCommits;
+		} catch (Exception exception) {
+			Logger.error("An error occurred while extracting the non-merge commits from the repository");
+			exception.printStackTrace();
+			System.exit(1);
+			return null;
+		}
+	}
+
+	/**
 	 * Generates a map representing a summary of the changes in a change period
 	 *
 	 * @param startCommitId     the ID of the first commit in the change period
@@ -75,28 +97,6 @@ public class ChangeDetector {
 			return changePeriodSummary;
 		} catch (Exception exception) {
 			Logger.error("An error occurred while summarising the change period");
-			exception.printStackTrace();
-			System.exit(1);
-			return null;
-		}
-	}
-
-	/**
-	 * Extracts all non-merge commits from the repository
-	 *
-	 * @return the non-merge commits
-	 */
-	public List<RevCommit> extractNonMergeCommits() {
-		try {
-			final ObjectId head = repository.resolve(Constants.HEAD);
-			final Iterable<RevCommit> commits = new Git(repository).log().add(head).call();
-			final List<RevCommit> nonMergeCommits = StreamSupport.stream(commits.spliterator(), false)
-					.filter(commit -> commit.getParentCount() < 2)
-					.collect(Collectors.toList());
-			Collections.reverse(nonMergeCommits);
-			return nonMergeCommits;
-		} catch (Exception exception) {
-			Logger.error("An error occurred while extracting the non-merge commits from the repository");
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
