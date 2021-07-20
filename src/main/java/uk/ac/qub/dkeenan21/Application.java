@@ -16,7 +16,19 @@ public class Application {
 		try {
 			final CommandLine commandLine = new DefaultParser().parse(options, args);
 			final String repositoryPath = commandLine.getOptionValue("repository-path");
-			final int changePeriodSize = Integer.parseInt(commandLine.getOptionValue("change-period-size"));
+
+			int changePeriodSize = 0;
+			try {
+				changePeriodSize = Integer.parseInt(commandLine.getOptionValue("change-period-size"));
+			} catch (NumberFormatException numberFormatException) {
+				Logger.error("Change period size must be a positive integer");
+				System.exit(1);
+			}
+			if (changePeriodSize < 1) {
+				Logger.error("Change period size must be a positive integer");
+				System.exit(1);
+			}
+
 			String[] fileTypeWhitelist = new String[0];
 			if (commandLine.getOptionValue("file-type-whitelist") != null &&
 					!commandLine.getOptionValue("file-type-whitelist").isBlank()) {
