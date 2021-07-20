@@ -107,6 +107,27 @@ public class EntropyComputerTest {
 	}
 
 	@Test
+	public void computeEntropy_multipleFilesChanged_changesUnevenlyDistributed2() {
+		changeSetSummary.put("File A", 250);
+		changeSetSummary.put("File B", 250);
+		changeSetSummary.put("File C", 125);
+		changeSetSummary.put("File D", 125);
+		changeSetSummary.put("File E", 125);
+		changeSetSummary.put("File F", 125);
+		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		assertEquals(2.5, entropy);
+	}
+
+	@Test
+	public void computeEntropy_multipleFilesChanged_changesUnevenlyDistributed3() {
+		changeSetSummary.put("File A", 3);
+		changeSetSummary.put("File B", 3);
+		changeSetSummary.put("File C", 6);
+		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		assertEquals(1.5, entropy);
+	}
+
+	@Test
 	public void computeEntropy_multipleFilesChanged_multipleLinesChangedInEach_changesVeryUnevenlyDistributed() {
 		changeSetSummary.put("File A", 71);
 		changeSetSummary.put("File B", 10);
