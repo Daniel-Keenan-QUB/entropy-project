@@ -10,7 +10,7 @@ import org.tinylog.Logger;
 import java.util.*;
 
 /**
- * Detects refactorings in the version history of a Git repository (Java projects only)
+ * Detects refactorings in the version history of a Git repository (supports Java projects only)
  */
 public class RefactoringDetector {
 	private final Repository repository;

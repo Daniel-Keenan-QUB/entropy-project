@@ -15,6 +15,7 @@ import java.util.*;
 /**
  * Analyses the version history of a repository
  * Records the entropy and number of each type of refactoring occurring in each change period
+ * Writes the results to a CSV file
  */
 public class AnalysisDriver {
 	private final ChangeDetector changeDetector;
