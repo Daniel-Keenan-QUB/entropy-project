@@ -17,6 +17,7 @@ import static org.apache.log4j.LogManager.getRootLogger;
 public class Application {
 	/**
 	 * Entrypoint for the program
+	 *
 	 * @param args the command-line arguments passed to the program
 	 */
 	public static void main(String[] args) {

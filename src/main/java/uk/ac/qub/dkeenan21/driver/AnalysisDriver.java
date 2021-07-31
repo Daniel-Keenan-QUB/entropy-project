@@ -55,7 +55,7 @@ public class AnalysisDriver {
 	/**
 	 * Computes entropy and detects refactorings for each change period in the version history of the repository
 	 * The final (most recent) change period may have fewer commits than the defined change period size
-	 * Results are written to CSV file 'results.csv'
+	 * Results are written to CSV files 'results-high-level.csv' and 'results-low-level.csv'
 	 *
 	 * @param changePeriodSize  the number of commits defining one change period
 	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
@@ -65,61 +65,82 @@ public class AnalysisDriver {
 			Logger.error("Change period size must be at least 1");
 			System.exit(1);
 		}
-		final List<RevCommit> nonMergeCommits = changeDetector.extractNonMergeCommits();
-		final int numberOfNonMergeCommits = nonMergeCommits.size();
+
+		final List<RevCommit> commits = changeDetector.extractNonMergeCommits();
+		final int numberOfCommits = commits.size();
 		final EntropyComputer entropyComputer = new EntropyComputer();
-		final String resultsFileName = "results.csv";
-		try {
-			final FileOutputStream fileOutputStream = new FileOutputStream(resultsFileName);
-			final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8);
-			final PrintWriter printWriter = new PrintWriter(outputStreamWriter, true);
-			writeHeaderLineToResultsFile(printWriter);
-			for (int i = 0; i < numberOfNonMergeCommits; i++) {
-				final String startCommitId = nonMergeCommits.get(i).getName();
-				if (numberOfNonMergeCommits - i >= changePeriodSize) {
-					i += changePeriodSize - 1;
-				} else {
-					i = numberOfNonMergeCommits - 1;
-				}
-				final String endCommitId = nonMergeCommits.get(i).getName();
-				final Map<String, Integer> changesSummary = changeDetector.summariseChanges(startCommitId, endCommitId,
-						fileTypeWhitelist);
-				final double entropy = entropyComputer.computeEntropy(changesSummary);
-				final String entropyString = String.format("%.4f", entropy);
-				Logger.info("Entropy = " + entropyString);
-				final Map<String, Integer> refactoringsSummary = refactoringDetector.summariseRefactorings(startCommitId,
-						endCommitId);
-				writeResultsLineToResultsFile(printWriter, startCommitId, endCommitId, entropyString, refactoringsSummary);
+		final List<Map<String, Integer>> changePeriodSummaries = new ArrayList<>();
+		final PrintWriter highLevelResultsWriter = generatePrintWriter("results-high-level.csv");
+		writeHeaderLineToHighLevelResultsFile(highLevelResultsWriter);
+
+		for (int i = 0; i < numberOfCommits; i++) {
+			final String startCommitId = commits.get(i).getName();
+			if (numberOfCommits - i >= changePeriodSize) {
+				i += changePeriodSize - 1;
+			} else {
+				i = numberOfCommits - 1;
 			}
-			printWriter.close();
-		} catch (Exception exception) {
-			Logger.error("An error occurred while writing to the results file");
-			System.exit(1);
+			final String endCommitId = commits.get(i).getName();
+			final Map<String, Integer> changesSummary = changeDetector.summariseChanges(startCommitId, endCommitId,
+					fileTypeWhitelist);
+			changePeriodSummaries.add(changesSummary);
+			final double entropy = entropyComputer.computeEntropy(changesSummary);
+			final String entropyString = String.format("%.4f", entropy);
+			Logger.info("Entropy = " + entropyString);
+			final Map<String, Integer> refactoringsSummary = refactoringDetector.summariseRefactorings(startCommitId,
+					endCommitId);
+			writeResultsLineToHighLevelResultsFile(highLevelResultsWriter, startCommitId, endCommitId, entropyString, refactoringsSummary);
 		}
+		highLevelResultsWriter.close();
+
+		// start of low-level analysis
+
+		final PrintWriter lowLevelResultsWriter = generatePrintWriter("results-low-level.csv");
+		writeHeaderLineToLowLevelResultsFile(lowLevelResultsWriter);
+		final Set<String> filePaths = new HashSet<>();
+		for (Map<String, Integer> changePeriodSummary : changePeriodSummaries) {
+			final Set<String> filePathsInChangePeriod = changePeriodSummary.keySet();
+			filePaths.addAll(filePathsInChangePeriod);
+		}
+		for (String filePath : filePaths) {
+			final StringBuilder resultsLine = new StringBuilder(filePath);
+			for (Map<String, Integer> changePeriodSummary : changePeriodSummaries) {
+				final Set<String> filePathsInChangePeriod = changePeriodSummary.keySet();
+				// todo: write 'R' if period in which file was refactored
+				if (filePathsInChangePeriod.contains(filePath)) {
+					final double fileEntropy = entropyComputer.computeEntropy(changePeriodSummary, filePath);
+					resultsLine.append(", ").append(String.format("%.4f", fileEntropy));
+				} else {
+					resultsLine.append(",");
+				}
+			}
+			lowLevelResultsWriter.println(resultsLine);
+		}
+		lowLevelResultsWriter.close();
 	}
 
 	/**
-	 * Writes a header line to the results file
+	 * Writes a header line to the high-level results file
 	 *
-	 * @param printWriter the writer for the results file
+	 * @param printWriter the writer for the high-level results file
 	 */
-	private void writeHeaderLineToResultsFile(PrintWriter printWriter) {
+	private void writeHeaderLineToHighLevelResultsFile(PrintWriter printWriter) {
 		final String headerLine = "Start Commit,End Commit,Entropy," + String.join(",", refactoringTypes);
 		printWriter.println(headerLine);
 	}
 
 	/**
-	 * Writes a results line (for a change period) to the results file
+	 * Writes a results line (for a change period) to the high-level results file
 	 *
-	 * @param printWriter         the writer for the results file
+	 * @param printWriter         the writer for the high-level results file
 	 * @param startCommitId       the ID of the first commit in the change period
 	 * @param endCommitId         the ID of the last commit in the change period
 	 * @param entropyString       the (rounded) entropy value for the change period, represented as a string
 	 * @param refactoringsSummary a map containing an entry for each refactoring type occurring in the change period
 	 *                            entries are of the form: [key = refactoring type, value = number of occurrences]
 	 */
-	private void writeResultsLineToResultsFile(PrintWriter printWriter, String startCommitId, String endCommitId,
-											   String entropyString, Map<String, Integer> refactoringsSummary) {
+	private void writeResultsLineToHighLevelResultsFile(PrintWriter printWriter, String startCommitId, String endCommitId,
+														String entropyString, Map<String, Integer> refactoringsSummary) {
 		final StringBuilder resultsLine = new StringBuilder(startCommitId + "," + endCommitId + "," + entropyString);
 		for (String refactoringType : refactoringTypes) {
 			final String columnValueToAdd = refactoringsSummary.get(refactoringType) != null ?
@@ -127,5 +148,33 @@ public class AnalysisDriver {
 			resultsLine.append(",").append(columnValueToAdd);
 		}
 		printWriter.println(resultsLine);
+	}
+
+	/**
+	 * Writes a header line to the low-level results file
+	 *
+	 * @param printWriter the writer for the low-level results file
+	 */
+	private void writeHeaderLineToLowLevelResultsFile(PrintWriter printWriter) {
+		final String headerLine = "Start Commit,End Commit";
+		printWriter.println(headerLine);
+	}
+
+	/**
+	 * Creates and configures a print writer for a given file
+	 *
+	 * @param filePath a path to the file to be written to
+	 * @return the generated print writer
+	 */
+	private PrintWriter generatePrintWriter(String filePath) {
+		try {
+			final FileOutputStream fileOutputStream = new FileOutputStream(filePath);
+			final OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8);
+			return new PrintWriter(outputStreamWriter, true);
+		} catch (Exception exception) {
+			Logger.error("An error occurred while generating a print writer");
+			System.exit(1);
+			return null;
+		}
 	}
 }
