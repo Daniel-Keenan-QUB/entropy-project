@@ -21,27 +21,6 @@ public class AnalysisDriver {
 	private final ChangeDetector changeDetector;
 	private final RefactoringDetector refactoringDetector;
 
-	// refactoring types recognised by the RefactoringMiner library — enumerated here for results-writing purposes
-	private static final String[] refactoringTypes = {"Extract Method", "Rename Class", "Move Attribute",
-			"Move And Rename Attribute", "Replace Attribute", "Rename Method", "Inline Method", "Move Method",
-			"Move And Rename Method", "Pull Up Method", "Move Class", "Move And Rename Class",
-			"Move Source Folder", "Pull Up Attribute", "Push Down Attribute", "Push Down Method",
-			"Extract Interface", "Extract Superclass", "Extract Subclass", "Extract Class", "Merge Method",
-			"Extract And Move Method", "Move And Inline Method", "Convert Anonymous Class to Type",
-			"Introduce Polymorphism", "Change Package", "Extract Variable", "Extract Attribute",
-			"Inline Variable", "Rename Variable", "Rename Parameter", "Rename Attribute", "Merge Variable",
-			"Merge Parameter", "Merge Attribute", "Split Variable", "Split Parameter", "Split Attribute",
-			"Replace Variable With Attribute", "Parameterize Variable", "Change Return Type",
-			"Change Variable Type", "Change Parameter Type", "Change Attribute Type", "Add Method Annotation",
-			"Remove Method Annotation", "Modify Method Annotation", "Add Attribute Annotation",
-			"Remove Attribute Annotation", "Modify Attribute Annotation", "Add Class Annotation",
-			"Remove Class Annotation", "Modify Class Annotation", "Add Parameter Annotation",
-			"Remove Parameter Annotation", "Modify Parameter Annotation", "Add Parameter", "Remove Parameter",
-			"Reorder Parameter", "Add Variable Annotation", "Remove Variable Annotation",
-			"Modify Variable Annotation", "Add Thrown Exception Type", "Remove Thrown Exception Type",
-			"Change Thrown Exception Type", "Change Method Access Modifier"
-	};
-
 	/**
 	 * Constructor which accepts a path to a repository and a file type whitelist
 	 *
@@ -70,8 +49,7 @@ public class AnalysisDriver {
 		final int numberOfCommits = commits.size();
 		final EntropyComputer entropyComputer = new EntropyComputer();
 		final List<Map<String, Integer>> changePeriodSummaries = new ArrayList<>();
-		final PrintWriter highLevelResultsWriter = generatePrintWriter("results-high-level.csv");
-		writeHeaderLineToHighLevelResultsFile(highLevelResultsWriter);
+		final List<Map<String, Map<String, Integer>>> refactoringPeriodSummaries = new ArrayList<>();
 
 		for (int i = 0; i < numberOfCommits; i++) {
 			final String startCommitId = commits.get(i).getName();
@@ -87,11 +65,10 @@ public class AnalysisDriver {
 			final double entropy = entropyComputer.computeEntropy(changesSummary);
 			final String entropyString = String.format("%.4f", entropy);
 			Logger.info("Entropy = " + entropyString);
-			final Map<String, Integer> refactoringsSummary = refactoringDetector.summariseRefactorings(startCommitId,
-					endCommitId);
-			writeResultsLineToHighLevelResultsFile(highLevelResultsWriter, startCommitId, endCommitId, entropyString, refactoringsSummary);
+			final Map<String, Map<String, Integer>> refactoringsSummary = refactoringDetector.summariseRefactorings(
+					startCommitId, endCommitId);
+			refactoringPeriodSummaries.add(refactoringsSummary);
 		}
-		highLevelResultsWriter.close();
 
 		// start of low-level analysis
 
@@ -104,50 +81,22 @@ public class AnalysisDriver {
 		}
 		for (String filePath : filePaths) {
 			final StringBuilder resultsLine = new StringBuilder(filePath);
+			int i = 0;
 			for (Map<String, Integer> changePeriodSummary : changePeriodSummaries) {
 				final Set<String> filePathsInChangePeriod = changePeriodSummary.keySet();
-				// todo: write 'R' if period in which file was refactored
-				if (filePathsInChangePeriod.contains(filePath)) {
+				if (refactoringPeriodSummaries.get(i).containsKey(filePath)) {
+					resultsLine.append(", R");
+				} else if (filePathsInChangePeriod.contains(filePath)) {
 					final double fileEntropy = entropyComputer.computeEntropy(changePeriodSummary, filePath);
 					resultsLine.append(", ").append(String.format("%.4f", fileEntropy));
 				} else {
 					resultsLine.append(",");
 				}
+				i++;
 			}
 			lowLevelResultsWriter.println(resultsLine);
 		}
 		lowLevelResultsWriter.close();
-	}
-
-	/**
-	 * Writes a header line to the high-level results file
-	 *
-	 * @param printWriter the writer for the high-level results file
-	 */
-	private void writeHeaderLineToHighLevelResultsFile(PrintWriter printWriter) {
-		final String headerLine = "Start Commit,End Commit,Entropy," + String.join(",", refactoringTypes);
-		printWriter.println(headerLine);
-	}
-
-	/**
-	 * Writes a results line (for a change period) to the high-level results file
-	 *
-	 * @param printWriter         the writer for the high-level results file
-	 * @param startCommitId       the ID of the first commit in the change period
-	 * @param endCommitId         the ID of the last commit in the change period
-	 * @param entropyString       the (rounded) entropy value for the change period, represented as a string
-	 * @param refactoringsSummary a map containing an entry for each refactoring type occurring in the change period
-	 *                            entries are of the form: [key = refactoring type, value = number of occurrences]
-	 */
-	private void writeResultsLineToHighLevelResultsFile(PrintWriter printWriter, String startCommitId, String endCommitId,
-														String entropyString, Map<String, Integer> refactoringsSummary) {
-		final StringBuilder resultsLine = new StringBuilder(startCommitId + "," + endCommitId + "," + entropyString);
-		for (String refactoringType : refactoringTypes) {
-			final String columnValueToAdd = refactoringsSummary.get(refactoringType) != null ?
-					String.valueOf(refactoringsSummary.get(refactoringType)) : "";
-			resultsLine.append(",").append(columnValueToAdd);
-		}
-		printWriter.println(resultsLine);
 	}
 
 	/**
