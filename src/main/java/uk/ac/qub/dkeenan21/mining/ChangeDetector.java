@@ -52,6 +52,7 @@ public class ChangeDetector {
 					.filter(commit -> commit.getParentCount() < 2)
 					.collect(Collectors.toList());
 			Collections.reverse(nonMergeCommits);
+			Logger.debug("Extracted " + nonMergeCommits.size() + " non-merge commits");
 			return nonMergeCommits;
 		} catch (Exception exception) {
 			Logger.error("An error occurred while extracting the non-merge commits from the repository");

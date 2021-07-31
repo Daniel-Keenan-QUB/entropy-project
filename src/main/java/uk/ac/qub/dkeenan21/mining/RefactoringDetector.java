@@ -63,8 +63,7 @@ public class RefactoringDetector {
 		} catch (Exception exception) {
 			Logger.error("An error occurred while extracting the refactorings from a change period");
 			exception.printStackTrace();
-			// return no refactorings only for this change period, allowing processing of other change periods to continue
-			return new HashSet<>();
+			System.exit(1);
 		}
 		return refactorings;
 	}
