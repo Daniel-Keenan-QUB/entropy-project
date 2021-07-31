@@ -82,17 +82,27 @@ public class AnalysisDriver {
 		for (String filePath : filePaths) {
 			final StringBuilder resultsLine = new StringBuilder(filePath);
 			int i = 0;
+			final List<Double> periodValues = new ArrayList<>();
 			for (Map<String, Integer> changePeriodSummary : changePeriodSummaries) {
 				final Set<String> filePathsInChangePeriod = changePeriodSummary.keySet();
 				// for each period file was changed, print either 'R' (if it was refactored) or its entropy otherwise
 				if (refactoringPeriodSummaries.get(i).containsKey(filePath)) {
-					resultsLine.append(", R");
+					periodValues.add(-1.0);
 				} else if (filePathsInChangePeriod.contains(filePath)) {
 					final double fileEntropy = entropyComputer.computeEntropy(changePeriodSummary, filePath);
-					resultsLine.append(", ").append(String.format("%.4f", fileEntropy));
+					periodValues.add(fileEntropy);
 				}
 				i++;
 			}
+
+			for (Double value : periodValues) {
+				if (value == -1.0) {
+					resultsLine.append(", R");
+				} else {
+					resultsLine.append(", ").append(String.format("%.4f", value));
+				}
+			}
+
 			lowLevelResultsWriter.println(resultsLine);
 		}
 		lowLevelResultsWriter.close();
