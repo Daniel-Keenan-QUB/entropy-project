@@ -84,13 +84,12 @@ public class AnalysisDriver {
 			int i = 0;
 			for (Map<String, Integer> changePeriodSummary : changePeriodSummaries) {
 				final Set<String> filePathsInChangePeriod = changePeriodSummary.keySet();
+				// for each period file was changed, print either 'R' (if it was refactored) or its entropy otherwise
 				if (refactoringPeriodSummaries.get(i).containsKey(filePath)) {
 					resultsLine.append(", R");
 				} else if (filePathsInChangePeriod.contains(filePath)) {
 					final double fileEntropy = entropyComputer.computeEntropy(changePeriodSummary, filePath);
 					resultsLine.append(", ").append(String.format("%.4f", fileEntropy));
-				} else {
-					resultsLine.append(",");
 				}
 				i++;
 			}
