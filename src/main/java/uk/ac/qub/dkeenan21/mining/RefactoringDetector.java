@@ -20,24 +20,23 @@ public class RefactoringDetector {
 
 	// refactoring types recognised by the RefactoringMiner library, enumerated here for filtering purposes
 	private static final String[] refactoringTypeWhiteList = {
-		"Extract Method", "Rename Class", "Move Attribute", "Move And Rename Attribute",
-		"Replace Attribute", "Rename Method", "Inline Method", "Move Method",
-		"Move And Rename Method", "Pull Up Method", "Move Class", "Move And Rename Class",
-		"Move Source Folder", "Pull Up Attribute", "Push Down Attribute", "Push Down Method",
-		"Extract Interface", "Extract Superclass", "Extract Subclass", "Extract Class", "Merge Method",
-		"Extract And Move Method", "Move And Inline Method", "Convert Anonymous Class to Type",
-		"Introduce Polymorphism", "Change Package", "Extract Variable", "Extract Attribute",
-		"Inline Variable", "Rename Variable", "Rename Parameter", "Rename Attribute", "Merge Variable",
-		"Merge Parameter", "Merge Attribute", "Split Variable", "Split Parameter", "Split Attribute",
-		"Replace Variable With Attribute", "Parameterize Variable", "Change Return Type",
-		"Change Variable Type", "Change Parameter Type", "Change Attribute Type", "Add Method Annotation",
-		"Remove Method Annotation", "Modify Method Annotation", "Add Attribute Annotation",
-		"Remove Attribute Annotation", "Modify Attribute Annotation", "Add Class Annotation",
-		"Remove Class Annotation", "Modify Class Annotation", "Add Parameter Annotation",
-		"Remove Parameter Annotation", "Modify Parameter Annotation", "Add Parameter", "Remove Parameter",
-		"Reorder Parameter", "Add Variable Annotation", "Remove Variable Annotation",
-		"Modify Variable Annotation", "Add Thrown Exception Type", "Remove Thrown Exception Type",
-		"Change Thrown Exception Type", "Change Method Access Modifier"
+		"Extract Interface", "Extract Superclass", "Extract Subclass", "Extract Class",
+
+		"Replace Attribute", "Pull Up Attribute", "Push Down Attribute", "Extract Attribute", "Merge Attribute",
+		"Split Attribute", "Change Attribute Type",
+
+		"Extract Method", "Extract And Move Method", "Inline Method", "Move And Inline Method",
+		"Merge Method", "Pull Up Method", "Push Down Method", "Change Method Access Modifier", "Change Return Type",
+
+		"Add Parameter", "Remove Parameter", "Merge Parameter", "Split Parameter", "Reorder Parameter",
+		"Change Parameter Type",
+
+		"Replace Variable With Attribute", "Extract Variable", "Inline Variable", "Merge Variable", "Split Variable",
+		"Parameterize Variable", "Change Variable Type",
+
+		"Add Thrown Exception Type", "Remove Thrown Exception Type", "Change Thrown Exception Type",
+
+		"Convert Anonymous Class to Type", "Introduce Polymorphism",
 	};
 
 	/**
