@@ -38,20 +38,13 @@ public class Application {
 				System.exit(1);
 			}
 
-			String[] fileTypeWhitelist = new String[0];
-			if (commandLine.getOptionValue("file-type-whitelist") != null &&
-					!commandLine.getOptionValue("file-type-whitelist").isBlank()) {
-				fileTypeWhitelist = commandLine.getOptionValue("file-type-whitelist").trim().split(" ");
-			}
-
 			Logger.info("Beginning analysis with program arguments");
 			Logger.info("— Repository path: " + repositoryPath);
 			Logger.info("— Change period size: " + changePeriodSize);
-			Logger.info("— File type whitelist: " + Arrays.toString(fileTypeWhitelist));
 
 			getRootLogger().addAppender(new NullAppender()); // disable log4j output from JGit library
 			final AnalysisDriver analysisDriver = new AnalysisDriver(repositoryPath);
-			analysisDriver.analyse(changePeriodSize, Set.of(fileTypeWhitelist));
+			analysisDriver.analyse(changePeriodSize);
 		} catch (ParseException parseException) {
 			// incorrect use of command-line options, so print usage message and exit with non-zero status code
 			final HelpFormatter helpFormatter = new HelpFormatter();
@@ -80,17 +73,9 @@ public class Application {
 				.hasArg()
 				.required()
 				.build();
-		final Option fileTypeWhiteListOption = Option.builder("wl")
-				.longOpt("file-type-whitelist")
-				.argName("WHITELIST")
-				.desc("only consider the file type extensions specified in space-separated list WHITELIST (must be " +
-						"enclosed in quotemarks)")
-				.hasArgs() // allows an unlimited number of arguments
-				.build();
 		final Options options = new Options();
 		options.addOption(repositoryPathOption);
 		options.addOption(changePeriodSizeOption);
-		options.addOption(fileTypeWhiteListOption);
 		return options;
 	}
 }

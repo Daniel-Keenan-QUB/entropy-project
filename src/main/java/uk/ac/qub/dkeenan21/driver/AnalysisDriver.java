@@ -22,7 +22,7 @@ public class AnalysisDriver {
 	private final RefactoringDetector refactoringDetector;
 
 	/**
-	 * Constructor which accepts a path to a repository and a file type whitelist
+	 * Constructor which accepts a path to a repository
 	 *
 	 * @param repositoryPath a path to the repository
 	 */
@@ -37,9 +37,8 @@ public class AnalysisDriver {
 	 * Results are written to CSV files 'results-high-level.csv' and 'results-low-level.csv'
 	 *
 	 * @param changePeriodSize  the number of commits defining one change period
-	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
 	 */
-	public void analyse(int changePeriodSize, Set<String> fileTypeWhitelist) {
+	public void analyse(int changePeriodSize) {
 		if (changePeriodSize < 1) {
 			Logger.error("Change period size must be at least 1");
 			System.exit(1);
@@ -59,8 +58,7 @@ public class AnalysisDriver {
 				i = numberOfCommits - 1;
 			}
 			final String endCommitId = commits.get(i).getName();
-			final Map<String, Integer> changesSummary = changeDetector.summariseChanges(startCommitId, endCommitId,
-					fileTypeWhitelist);
+			final Map<String, Integer> changesSummary = changeDetector.summariseChanges(startCommitId, endCommitId);
 			changePeriodSummaries.add(changesSummary);
 			final double entropy = entropyComputer.computeEntropyOfPeriod(changesSummary);
 			final String entropyString = String.format("%.4f", entropy);
