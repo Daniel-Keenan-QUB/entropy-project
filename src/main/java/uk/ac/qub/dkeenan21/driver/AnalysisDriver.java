@@ -95,12 +95,27 @@ public class AnalysisDriver {
 				i++;
 			}
 
+			double runningEntropyTotal = 0.0;
+			int runningPeriodCount = 0;
+			final List<Double> periodAverages = new ArrayList<>();
 			for (Double value : periodValues) {
 				if (value == -1.0) {
-					resultsLine.append(", R");
+					if (runningPeriodCount > 0) {
+						periodAverages.add(runningEntropyTotal / runningPeriodCount);
+						runningEntropyTotal = 0.0;
+						runningPeriodCount = 0;
+					}
 				} else {
-					resultsLine.append(", ").append(String.format("%.4f", value));
+					runningEntropyTotal += value;
+					runningPeriodCount++;
 				}
+			}
+			if (runningPeriodCount > 0) {
+				periodAverages.add(runningEntropyTotal / runningPeriodCount);
+			}
+
+			for (Double periodAverage : periodAverages) {
+				resultsLine.append(", ").append(String.format("%.4f", periodAverage));
 			}
 
 			lowLevelResultsWriter.println(resultsLine);
