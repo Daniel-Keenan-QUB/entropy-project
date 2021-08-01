@@ -23,7 +23,7 @@ public class EntropyComputerTest {
 
 	@Test
 	public void computeEntropy_zeroFilesChanged() {
-		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		final double entropy = entropyComputer.computeEntropyOfPeriod(changeSetSummary);
 		assertEquals(0.0, entropy);
 	}
 
@@ -31,21 +31,21 @@ public class EntropyComputerTest {
 	public void computeEntropy_singleFileChanged_zeroLinesChanged() {
 		// note: zero-line changes are anomalous should be ignored in computation
 		changeSetSummary.put("File A", 0);
-		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		final double entropy = entropyComputer.computeEntropyOfPeriod(changeSetSummary);
 		assertEquals(0.0, entropy);
 	}
 
 	@Test
 	public void computeEntropy_singleFileChanged_singleLineChanged() {
 		changeSetSummary.put("File A", 1);
-		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		final double entropy = entropyComputer.computeEntropyOfPeriod(changeSetSummary);
 		assertEquals(0.0, entropy);
 	}
 
 	@Test
 	public void computeEntropy_singleFileChanged_multipleLinesChanged() {
 		changeSetSummary.put("File A", 25);
-		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		final double entropy = entropyComputer.computeEntropyOfPeriod(changeSetSummary);
 		assertEquals(0.0, entropy);
 	}
 
@@ -60,7 +60,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File F", 0);
 		changeSetSummary.put("File G", 0);
 		changeSetSummary.put("File H", 0);
-		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		final double entropy = entropyComputer.computeEntropyOfPeriod(changeSetSummary);
 		assertEquals(0.0, entropy);
 	}
 
@@ -74,7 +74,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File F", 1);
 		changeSetSummary.put("File G", 1);
 		changeSetSummary.put("File H", 1);
-		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		final double entropy = entropyComputer.computeEntropyOfPeriod(changeSetSummary);
 		assertEquals(3.0, entropy);
 	}
 
@@ -88,7 +88,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File F", 25);
 		changeSetSummary.put("File G", 25);
 		changeSetSummary.put("File H", 25);
-		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		final double entropy = entropyComputer.computeEntropyOfPeriod(changeSetSummary);
 		assertEquals(3.0, entropy);
 	}
 
@@ -102,7 +102,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File F", 7);
 		changeSetSummary.put("File G", 5);
 		changeSetSummary.put("File H", 2);
-		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		final double entropy = entropyComputer.computeEntropyOfPeriod(changeSetSummary);
 		assertEquals(2.582851523906001, entropy);
 	}
 
@@ -114,7 +114,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File D", 125);
 		changeSetSummary.put("File E", 125);
 		changeSetSummary.put("File F", 125);
-		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		final double entropy = entropyComputer.computeEntropyOfPeriod(changeSetSummary);
 		assertEquals(2.5, entropy);
 	}
 
@@ -123,7 +123,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File A", 3);
 		changeSetSummary.put("File B", 3);
 		changeSetSummary.put("File C", 6);
-		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		final double entropy = entropyComputer.computeEntropyOfPeriod(changeSetSummary);
 		assertEquals(1.5, entropy);
 	}
 
@@ -137,7 +137,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File F", 3);
 		changeSetSummary.put("File G", 2);
 		changeSetSummary.put("File H", 2);
-		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		final double entropy = entropyComputer.computeEntropyOfPeriod(changeSetSummary);
 		assertEquals(1.6141487706500264, entropy);
 	}
 
@@ -151,7 +151,7 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File F", 1);
 		changeSetSummary.put("File G", 0); // note: zero-line changes should be ignored in computation
 		changeSetSummary.put("File H", 0);
-		final double entropy = entropyComputer.computeEntropy(changeSetSummary);
+		final double entropy = entropyComputer.computeEntropyOfPeriod(changeSetSummary);
 		assertEquals(1.878685982661894, entropy);
 	}
 }

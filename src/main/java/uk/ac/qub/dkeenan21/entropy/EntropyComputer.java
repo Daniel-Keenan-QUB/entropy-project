@@ -5,10 +5,7 @@ import org.tinylog.Logger;
 import java.util.Map;
 
 /**
- * Computes source code change entropy (or simply 'entropy'), a measure of the 'scattering' of changes
- * Entropy increases with the number of changed files and how evenly distributed line changes are across the files
- * Entropy is minimum (zero) when no more than one file has been changed
- * Entropy is maximum for a given number of changed files when each has been changed by an equal number of lines
+ * Computes source code change entropy, a measure of the scattering of changes
  */
 public class EntropyComputer {
 	/**
@@ -18,7 +15,7 @@ public class EntropyComputer {
 	 *                            entries are of the form [key = path, value = number of changed lines]
 	 * @return the entropy value
 	 */
-	public double computeEntropy(Map<String, Integer> changePeriodSummary) {
+	public double computeEntropyOfPeriod(Map<String, Integer> changePeriodSummary) {
 		final int numberOfChangedLinesInChangePeriod = changePeriodSummary.values().stream().reduce(0, Integer::sum);
 		double entropy = 0.0;
 		for (Map.Entry<String, Integer> entry : changePeriodSummary.entrySet()) {
@@ -41,14 +38,14 @@ public class EntropyComputer {
 	 * @param filePath            the path of the file for which to compute entropy
 	 * @return the entropy value
 	 */
-	public double computeEntropy(Map<String, Integer> changePeriodSummary, String filePath) {
+	public double computeEntropyOfFileWithinPeriod(Map<String, Integer> changePeriodSummary, String filePath) {
 		if (!changePeriodSummary.containsKey(filePath)) {
 			Logger.error("File '" + filePath + "' not found in change period");
 			System.exit(1);
 			return -1.0;
 		}
 
-		final double entropyOfChangePeriod = computeEntropy(changePeriodSummary);
+		final double entropyOfChangePeriod = computeEntropyOfPeriod(changePeriodSummary);
 		final int numberOfChangedLinesInChangedFile = changePeriodSummary.get(filePath);
 		final int numberOfChangedLinesInChangePeriod = changePeriodSummary.values().stream().reduce(0, Integer::sum);
 

@@ -62,7 +62,7 @@ public class AnalysisDriver {
 			final Map<String, Integer> changesSummary = changeDetector.summariseChanges(startCommitId, endCommitId,
 					fileTypeWhitelist);
 			changePeriodSummaries.add(changesSummary);
-			final double entropy = entropyComputer.computeEntropy(changesSummary);
+			final double entropy = entropyComputer.computeEntropyOfPeriod(changesSummary);
 			final String entropyString = String.format("%.4f", entropy);
 			Logger.info("Entropy = " + entropyString);
 			final Map<String, Map<String, Integer>> refactoringsSummary = refactoringDetector.summariseRefactorings(
@@ -89,7 +89,7 @@ public class AnalysisDriver {
 				if (refactoringPeriodSummaries.get(i).containsKey(filePath)) {
 					periodValues.add(-1.0);
 				} else if (filePathsInChangePeriod.contains(filePath)) {
-					final double fileEntropy = entropyComputer.computeEntropy(changePeriodSummary, filePath);
+					final double fileEntropy = entropyComputer.computeEntropyOfFileWithinPeriod(changePeriodSummary, filePath);
 					periodValues.add(fileEntropy);
 				}
 				i++;
