@@ -63,8 +63,8 @@ public class ChangeDetector {
 	/**
 	 * Generates a map representing a summary of the changes in a change period
 	 *
-	 * @param startCommitId     the ID of the first commit in the change period
-	 * @param endCommitId       the ID of the last commit in the change period
+	 * @param startCommitId the ID of the first commit in the change period
+	 * @param endCommitId   the ID of the last commit in the change period
 	 * @return a map containing an entry for each changed file in the change period
 	 * entries are of the form [key = path, value = number of changed lines]
 	 */
@@ -132,10 +132,11 @@ public class ChangeDetector {
 	/**
 	 * Extracts the file changes from a commit
 	 *
-	 * @param commit            the commit
+	 * @param commit the commit
 	 * @return the file changes
 	 */
 	private Iterable<DiffEntry> extractFileChanges(RevCommit commit) {
+		final List<DiffEntry> fileChanges;
 		try (final DiffFormatter diffFormatter = generateDiffFormatter()) {
 			// extract file changes by comparing the commit tree with that of its parent
 			final ObjectReader objectReader = repository.newObjectReader();
@@ -152,38 +153,38 @@ public class ChangeDetector {
 
 			// extract the file changes for all '.java' files
 			diffFormatter.setPathFilter(PathSuffixFilter.create(".java"));
-			final List<DiffEntry> fileChanges = diffFormatter.scan(parentCommitTreeIterator, commitTreeIterator);
-
-			// JGit path filters do not support filtering on glob patterns
-			// also, negations of path suffix filters do not work (https://bugs.eclipse.org/bugs/show_bug.cgi?id=574253)
-			// therefore, we must filter out test files using our own pattern-matching approach for now
-			final String[] regexes = new String[] {"test/", "tests/", "tester/", "testers/", "androidTest/",
-					"Test.java", "Tests.java", "Tester.java", "Testers.java"};
-			final Set<Pattern> exclusionPatterns = new HashSet<>();
-			for (String regex : regexes) {
-				exclusionPatterns.add(Pattern.compile(regex));
-			}
-
-			// remove test files from consideration by testing each file path against the defined exclusion patterns
-			final Iterator<DiffEntry> iterator = fileChanges.iterator();
-			while (iterator.hasNext()) {
-				final DiffEntry fileChange = iterator.next();
-				for (Pattern exclusionPattern : exclusionPatterns) {
-					if (exclusionPattern.matcher(fileChange.getOldPath()).find() ||
-							exclusionPattern.matcher(fileChange.getNewPath()).find()) {
-						iterator.remove();
-						break;
-					}
-				}
-			}
-
-			return fileChanges;
+			fileChanges = diffFormatter.scan(parentCommitTreeIterator, commitTreeIterator);
 		} catch (Exception exception) {
 			Logger.error("An error occurred while extracting the file changes from a commit");
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
 		}
+
+		// JGit path filters do not support filtering on glob patterns
+		// also, negations of path suffix filters do not work (https://bugs.eclipse.org/bugs/show_bug.cgi?id=574253)
+		// therefore, we must filter out test files using our own pattern-matching approach for now
+		final String[] regexes = new String[]{"test/", "tests/", "tester/", "testers/", "androidTest/",
+				"Test.java", "Tests.java", "Tester.java", "Testers.java"};
+		final Set<Pattern> exclusionPatterns = new HashSet<>();
+		for (String regex : regexes) {
+			exclusionPatterns.add(Pattern.compile(regex));
+		}
+
+		// remove test files from consideration by testing each file path against the defined exclusion patterns
+		final Iterator<DiffEntry> iterator = fileChanges.iterator();
+		while (iterator.hasNext()) {
+			final DiffEntry fileChange = iterator.next();
+			for (Pattern exclusionPattern : exclusionPatterns) {
+				if (exclusionPattern.matcher(fileChange.getOldPath()).find() ||
+						exclusionPattern.matcher(fileChange.getNewPath()).find()) {
+					iterator.remove();
+					break;
+				}
+			}
+		}
+
+		return fileChanges;
 	}
 
 	/**
