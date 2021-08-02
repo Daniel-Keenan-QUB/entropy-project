@@ -71,28 +71,41 @@ public class AnalysisDriver {
 		// start of low-level analysis
 
 		final PrintWriter lowLevelResultsWriter = generatePrintWriter("results-low-level.csv");
-		writeHeaderLineToLowLevelResultsFile(lowLevelResultsWriter);
+		lowLevelResultsWriter.println(",");
+
+		// extract the path of every file which existed in the system at some point
 		final Set<String> filePaths = new HashSet<>();
 		for (Map<String, Integer> changePeriodSummary : changePeriodSummaries) {
 			final Set<String> filePathsInChangePeriod = changePeriodSummary.keySet();
 			filePaths.addAll(filePathsInChangePeriod);
 		}
+
+		// for each file
 		for (String filePath : filePaths) {
 			final StringBuilder resultsLine = new StringBuilder(filePath);
 			int i = 0;
 			final List<Double> periodValues = new ArrayList<>();
+			// for each period
 			for (Map<String, Integer> changePeriodSummary : changePeriodSummaries) {
 				final Set<String> filePathsInChangePeriod = changePeriodSummary.keySet();
-				// for each period file was changed, print either 'R' (if it was refactored) or its entropy otherwise
 				if (refactoringPeriodSummaries.get(i).containsKey(filePath)) {
+					// file was refactored during this period, so record a special value of -1.0
 					periodValues.add(-1.0);
 				} else if (filePathsInChangePeriod.contains(filePath)) {
+					// file was not refactored but was changed during this period, so record its entropy for this period
 					final double fileEntropy = entropyComputer.computeEntropyOfFileWithinPeriod(changePeriodSummary, filePath);
 					periodValues.add(fileEntropy);
 				}
 				i++;
 			}
 
+			// periodValues now contains an element for each period in which the file was changed (in time order)
+			// — if the file was not refactored in a period, the value recorded is its entropy for that period
+			// — if the file was refactored in a period, the value recorded is -1.0
+
+			// calculate the average file entropy over the periods in which the file was changed, up to the period
+			// before the first period in which the file was refactored, then repeat this calculation starting from
+			// after the refactoring period, continuously repeating until there are no periods remaining
 			double runningEntropyTotal = 0.0;
 			int runningPeriodCount = 0;
 			final List<Double> periodAverages = new ArrayList<>();
@@ -112,6 +125,9 @@ public class AnalysisDriver {
 				periodAverages.add(runningEntropyTotal / runningPeriodCount);
 			}
 
+			// now, each element in periodAverages represents the file's average entropy over all periods up to the next
+			// period in which the file was refactored (or the end of the project history if there are no more such periods)
+
 			for (Double periodAverage : periodAverages) {
 				resultsLine.append(", ").append(String.format("%.4f", periodAverage));
 			}
@@ -119,16 +135,6 @@ public class AnalysisDriver {
 			lowLevelResultsWriter.println(resultsLine);
 		}
 		lowLevelResultsWriter.close();
-	}
-
-	/**
-	 * Writes a header line to the low-level results file
-	 *
-	 * @param printWriter the writer for the low-level results file
-	 */
-	private void writeHeaderLineToLowLevelResultsFile(PrintWriter printWriter) {
-		final String headerLine = "Start Commit,End Commit";
-		printWriter.println(headerLine);
 	}
 
 	/**
