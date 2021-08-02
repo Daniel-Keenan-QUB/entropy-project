@@ -13,30 +13,56 @@ import java.util.*;
 import static java.util.Arrays.asList;
 
 /**
- * Detects refactorings in the version history of a Git repository (supports Java projects only)
+ * Detects Java code refactorings in the version history of a Git repository
  */
 public class RefactoringDetector {
 	private final Repository repository;
 
 	// refactoring types recognised by the RefactoringMiner library, enumerated here for filtering purposes
 	private static final String[] refactoringTypeWhiteList = {
-		"Extract Interface", "Extract Superclass", "Extract Subclass", "Extract Class",
+			// classes and interfaces
+			"Extract Superclass", "Extract Subclass", "Extract Class", "Extract Interface",
 
-		"Replace Attribute", "Pull Up Attribute", "Push Down Attribute", "Extract Attribute", "Merge Attribute",
-		"Split Attribute", "Change Attribute Type",
+			// methods
+			"Extract Method", "Inline Method", "Merge Method", "Move Method",
+			"Extract And Move Method", "Move And Inline Method", "Move And Rename Method",
+			"Pull Up Method", "Push Down Method",
 
-		"Extract Method", "Extract And Move Method", "Inline Method", "Move And Inline Method",
-		"Merge Method", "Pull Up Method", "Push Down Method", "Change Method Access Modifier", "Change Return Type",
+			// attributes
+			"Extract Attribute", "Merge Attribute", "Split Attribute", "Move Attribute", "Replace Attribute",
+			"Move And Rename Attribute", "Pull Up Attribute", "Push Down Attribute",
 
-		"Add Parameter", "Remove Parameter", "Merge Parameter", "Split Parameter", "Reorder Parameter",
-		"Change Parameter Type",
+			// miscellaneous
+			"Introduce Polymorphism",
 
-		"Replace Variable With Attribute", "Extract Variable", "Inline Variable", "Merge Variable", "Split Variable",
-		"Parameterize Variable", "Change Variable Type",
+			// IGNORE: folder/package/class
+			// "Move Source Folder", "Change Package", "Move Class", "Move And Rename Class", "Rename Class"
+			// "Convert Anonymous Class to Type",
 
-		"Add Thrown Exception Type", "Remove Thrown Exception Type", "Change Thrown Exception Type",
+			// IGNORE: attribute
+			//  "Change Attribute Type",
+			// "Rename Attribute",
 
-		"Convert Anonymous Class to Type", "Introduce Polymorphism",
+			// IGNORE: method
+			// "Rename Method", "Change Return Type"
+
+			// IGNORE: parameter
+			// "Add Parameter", "Remove Parameter", "Merge Parameter", "Split Parameter", "Change Parameter Type",
+			// "Reorder Parameter", "Rename Parameter",
+
+			// IGNORE: variable
+			// "Extract Variable", "Inline Variable", "Merge Variable", "Split Variable", "Change Variable Type",
+			// "Parameterize Variable", "Replace Variable With Attribute", "Rename Variable"
+
+			// IGNORE: annotation
+			// "Add Class Annotation", "Add Attribute Annotation", "Add Method Annotation", "Add Parameter Annotation",
+			// "Add Variable Annotation", "Modify Class Annotation", "Modify Attribute Annotation",
+			// "Modify Method Annotation", "Modify Parameter Annotation", "Modify Variable Annotation",
+			// "Remove Class Annotation", "Remove Attribute Annotation",  "Remove Method Annotation",
+			// "Remove Parameter Annotation", "Remove Variable Annotation"
+
+			// IGNORE: thrown exception
+			// "Add Thrown Exception Type", "Remove Thrown Exception Type",
 	};
 
 	/**
@@ -55,7 +81,7 @@ public class RefactoringDetector {
 	 * @param startCommitId the ID of the first commit in the change period
 	 * @param endCommitId   the ID of the last commit in the change period
 	 * @return a map containing an entry for each refactoring type occurring in the change period
-	 * entries are of the form: [key = refactoring type, value = number of occurrences]
+	 * entries are of the form: [file path -> [refactoring type -> number of occurrences]]
 	 */
 	public Map<String, Map<String, Integer>> summariseRefactorings(String startCommitId, String endCommitId) {
 		// extract all refactorings applied during the period
