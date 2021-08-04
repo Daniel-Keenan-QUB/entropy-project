@@ -36,7 +36,7 @@ public class AnalysisDriver {
 	 * The final (most recent) change period may have fewer commits than the defined change period size
 	 * Results are written to CSV files 'results-high-level.csv' and 'results-low-level.csv'
 	 *
-	 * @param changePeriodSize  the number of commits defining one change period
+	 * @param changePeriodSize the number of commits defining one change period
 	 */
 	public void analyse(int changePeriodSize) {
 		if (changePeriodSize < 1) {
@@ -47,7 +47,7 @@ public class AnalysisDriver {
 		final List<RevCommit> commits = changeDetector.extractNonMergeCommits();
 		final int numberOfCommits = commits.size();
 		final EntropyComputer entropyComputer = new EntropyComputer();
-		final List<Map<String, Integer>> changePeriodSummaries = new ArrayList<>();
+		final List<Map<String, Integer>> periodSummaries = new ArrayList<>();
 		final List<Map<String, Map<String, Integer>>> refactoringPeriodSummaries = new ArrayList<>();
 
 		for (int i = 0; i < numberOfCommits; i++) {
@@ -59,7 +59,7 @@ public class AnalysisDriver {
 			}
 			final String endCommitId = commits.get(i).getName();
 			final Map<String, Integer> changesSummary = changeDetector.summariseChanges(startCommitId, endCommitId);
-			changePeriodSummaries.add(changesSummary);
+			periodSummaries.add(changesSummary);
 			final double entropy = entropyComputer.computeEntropyOfPeriod(changesSummary);
 			final String entropyString = String.format("%.4f", entropy);
 			Logger.info("Entropy = " + entropyString);
@@ -68,33 +68,40 @@ public class AnalysisDriver {
 			refactoringPeriodSummaries.add(refactoringsSummary);
 		}
 
-		// start of low-level analysis
+		// ------------- start of low-level analysis ------------- //
 
-		final PrintWriter lowLevelResultsWriter = generatePrintWriter("results-low-level.csv");
-		lowLevelResultsWriter.println(",");
+		final String fileLevelResultsFilePath = "results.csv";
+//		final String typeOfValuesToRecord = "entropy of each period";
+		final String typeOfValuesToRecord = "percentage change in entropy between adjacent periods";
+		final boolean includeOnlyPeriodsInWhichFileWasChanged = true;
+		final boolean markPeriodsInWhichFileWasRefactored = true;
+
+		final PrintWriter lowLevelResultsWriter = generatePrintWriter(fileLevelResultsFilePath);
 
 		// extract the path of every file which existed in the system at some point
 		final Set<String> filePaths = new HashSet<>();
-		for (Map<String, Integer> changePeriodSummary : changePeriodSummaries) {
+		for (Map<String, Integer> changePeriodSummary : periodSummaries) {
 			final Set<String> filePathsInChangePeriod = changePeriodSummary.keySet();
 			filePaths.addAll(filePathsInChangePeriod);
 		}
 
 		// for each file
 		for (String filePath : filePaths) {
-			final StringBuilder resultsLine = new StringBuilder(filePath);
 			int i = 0;
 			final List<Double> periodValues = new ArrayList<>();
 			// for each period
-			for (Map<String, Integer> changePeriodSummary : changePeriodSummaries) {
-				final Set<String> filePathsInChangePeriod = changePeriodSummary.keySet();
-				if (refactoringPeriodSummaries.get(i).containsKey(filePath)) {
+			for (Map<String, Integer> periodSummary : periodSummaries) {
+				final Set<String> pathsOfFilesChangedDuringPeriod = periodSummary.keySet();
+				if (markPeriodsInWhichFileWasRefactored && refactoringPeriodSummaries.get(i).containsKey(filePath)) {
 					// file was refactored during this period, so record a special value of -1.0
 					periodValues.add(-1.0);
-				} else if (filePathsInChangePeriod.contains(filePath)) {
-					// file was not refactored but was changed during this period, so record its entropy for this period
-					final double fileEntropy = entropyComputer.computeEntropyOfFileWithinPeriod(changePeriodSummary, filePath);
+				} else if (pathsOfFilesChangedDuringPeriod.contains(filePath)) {
+					// file was changed during this period, so record its entropy for this period
+					final double fileEntropy = entropyComputer.computeEntropyOfFileWithinPeriod(periodSummary, filePath);
 					periodValues.add(fileEntropy);
+				} else if (!includeOnlyPeriodsInWhichFileWasChanged) {
+					// file was not changed during this period, so record a special value of -2.0
+					periodValues.add(-2.0);
 				}
 				i++;
 			}
@@ -103,33 +110,85 @@ public class AnalysisDriver {
 			// — if the file was not refactored in a period, the value recorded is its entropy for that period
 			// — if the file was refactored in a period, the value recorded is -1.0
 
-			// calculate the average file entropy over the periods in which the file was changed, up to the period
-			// before the first period in which the file was refactored, then repeat this calculation starting from
-			// after the refactoring period, continuously repeating until there are no periods remaining
-			double runningEntropyTotal = 0.0;
-			int runningPeriodCount = 0;
-			final List<Double> periodAverages = new ArrayList<>();
-			for (Double value : periodValues) {
-				if (value == -1.0) {
-					if (runningPeriodCount > 0) {
-						periodAverages.add(runningEntropyTotal / runningPeriodCount);
-						runningEntropyTotal = 0.0;
-						runningPeriodCount = 0;
+			final StringBuilder resultsLine = new StringBuilder(filePath);
+
+			if (typeOfValuesToRecord.equals("entropy of each period")) {
+				for (Double value : periodValues) {
+					if (value == -2.0) {
+						resultsLine.append(", ");
+					} else if (value == -1.0) {
+						resultsLine.append(", R");
+					} else {
+						resultsLine.append(", ").append(String.format("%.4f", value));
 					}
-				} else {
-					runningEntropyTotal += value;
-					runningPeriodCount++;
 				}
-			}
-			if (runningPeriodCount > 0) {
-				periodAverages.add(runningEntropyTotal / runningPeriodCount);
+				continue; // finished 'entropy of each period' processing for this file
 			}
 
-			// now, each element in periodAverages represents the file's average entropy over all periods up to the next
-			// period in which the file was refactored (or the end of the project history if there are no more such periods)
+			// -------- if reached this point, we are calculating the percentage change between periods --------
 
-			for (Double periodAverage : periodAverages) {
-				resultsLine.append(", ").append(String.format("%.4f", periodAverage));
+			// includeOnlyPeriodsInWhichFileWasChanged MUST be true
+			final boolean calculatePercentageChangeBetweenAdjacentNonRefactoringPeriods = false;
+			final boolean calculateAveragePercentageChangeBeforeAndAfterRefactoringPeriods = true;
+
+			if (calculatePercentageChangeBetweenAdjacentNonRefactoringPeriods) {
+				boolean previousPeriodWasNonRefactoringPeriod = false;
+				double previousPeriodValue = 0.0;
+				for (Double value : periodValues) {
+					if (!previousPeriodWasNonRefactoringPeriod || value == -1.0) {
+						// previous period was, or this period is, a refactoring period, so must skip forward
+						// update 'previous period' info before moving onto next period value
+						previousPeriodWasNonRefactoringPeriod = (value != -1.0);
+						previousPeriodValue = value;
+						continue;
+					}
+					// previous period was, and this period is, a non-refactoring period
+					// now calculate and record the percentage change between previous period and this period
+					final double percentageChangeInEntropy = 100.0 * ((value - previousPeriodValue) / previousPeriodValue);
+					resultsLine.append(", ").append(String.format("%.4f", percentageChangeInEntropy));
+
+					// update 'previous period' info before moving onto next period value
+					previousPeriodWasNonRefactoringPeriod = (value != -1.0);
+					previousPeriodValue = value;
+				}
+			} else if (calculateAveragePercentageChangeBeforeAndAfterRefactoringPeriods) {
+				// calculate the average file entropy over the periods in which the file was changed, up to the period
+				// before the first period in which the file was refactored, then repeat this calculation starting from
+				// after the refactoring period, continuously repeating until there are no periods remaining
+				double runningEntropyTotal = 0.0;
+				int runningPeriodCount = 0;
+				final List<Double> periodAverages = new ArrayList<>();
+				for (Double value : periodValues) {
+					if (value == -1.0) {
+						if (runningPeriodCount > 0) {
+							periodAverages.add(runningEntropyTotal / runningPeriodCount);
+							runningEntropyTotal = 0.0;
+							runningPeriodCount = 0;
+						}
+					} else {
+						runningEntropyTotal += value;
+						runningPeriodCount++;
+					}
+				}
+				if (runningPeriodCount > 0) {
+					periodAverages.add(runningEntropyTotal / runningPeriodCount);
+				}
+
+				// now, each element in periodAverages represents the file's average entropy over all periods up to the next
+				// period in which the file was refactored (or the end of the project history if there are no more such periods)
+
+				// calculate the percentage change between each pair of multi-period average entropy values
+				if (periodAverages.size() > 1) {
+					final Iterator<Double> iterator = periodAverages.listIterator();
+					double before = iterator.next();
+					double after;
+					while (iterator.hasNext()) {
+						after = iterator.next();
+						final double relativeChangeInEntropy = 100.0 * ((after - before) / before);
+						resultsLine.append(", ").append(String.format("%.4f", relativeChangeInEntropy));
+						before = after;
+					}
+				}
 			}
 
 			lowLevelResultsWriter.println(resultsLine);
