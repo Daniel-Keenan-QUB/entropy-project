@@ -1,54 +1,51 @@
 package uk.ac.qub.dkeenan21.entropy;
 
-import org.tinylog.Logger;
-
 import java.util.Map;
 
 /**
- * Computes source code change entropy, a measure of the scattering of changes
+ * Computes source code change entropy (or simply 'entropy')
  */
 public class EntropyComputer {
 	/**
-	 * Computes the entropy of a change period
+	 * Computes the entropy of a change set
 	 *
-	 * @param changePeriodSummary a map containing an entry for each changed file in the change period
-	 *                            entries are of the form [key = path, value = number of changed lines]
+	 * @param changeSetSummary a map containing an entry for each file in the change set
+	 *                         entries are of the form: [path -> number of changed lines]
 	 * @return the entropy value
 	 */
-	public double computeEntropyOfPeriod(Map<String, Integer> changePeriodSummary) {
-		final int numberOfChangedLinesInChangePeriod = changePeriodSummary.values().stream().reduce(0, Integer::sum);
+	public double computeEntropyOfChangeSet(Map<String, Integer> changeSetSummary) {
+		final int numberOfChangedLinesInChangeSet = changeSetSummary.values().stream().reduce(0, Integer::sum);
 		double entropy = 0.0;
-		for (Map.Entry<String, Integer> entry : changePeriodSummary.entrySet()) {
-			final int numberOfChangedLinesInChangedFile = entry.getValue();
-			if (numberOfChangedLinesInChangedFile <= 0) {
-				continue; // '0 changed lines' entries (e.g., binaries) must be ignored, otherwise result will be undefined
+		for (Map.Entry<String, Integer> entry : changeSetSummary.entrySet()) {
+			final int numberOfChangedLinesInFile = entry.getValue();
+			if (numberOfChangedLinesInFile < 1) {
+				// file listed as '0 lines changed', so exclude from computation
+				continue;
 			}
-			final double changedLineRatio = (double) numberOfChangedLinesInChangedFile / numberOfChangedLinesInChangePeriod;
-			// calculate log2(changedLineRatio) indirectly using the log change of base formula
-			entropy -= changedLineRatio * Math.log10(changedLineRatio) / Math.log10(2);
+			final double proportionOfChangedLinesInFile = (double) numberOfChangedLinesInFile / numberOfChangedLinesInChangeSet;
+			// calculate log[2](proportionOfChangedLinesInFile) indirectly using the log change of base formula
+			entropy -= proportionOfChangedLinesInFile * Math.log10(proportionOfChangedLinesInFile) / Math.log10(2);
 		}
 		return entropy;
 	}
 
 	/**
-	 * Computes the entropy of a file in a change period
+	 * Computes the entropy of a file in a change set
 	 *
-	 * @param changePeriodSummary a map containing an entry for each changed file in the change period
-	 *                            entries are of the form [key = path, value = number of changed lines]
-	 * @param filePath            the path of the file for which to compute entropy
+	 * @param changeSetSummary a map containing an entry for each file in the change set
+	 *                         entries are of the form [path -> number of changed lines]
+	 * @param filePath         the file path
 	 * @return the entropy value
 	 */
-	public double computeEntropyOfFileWithinPeriod(Map<String, Integer> changePeriodSummary, String filePath) {
-		if (!changePeriodSummary.containsKey(filePath)) {
-			Logger.error("File '" + filePath + "' not found in change period");
-			System.exit(1);
-			return -1.0;
+	public double computeEntropyOfFileInChangeSet(Map<String, Integer> changeSetSummary, String filePath) {
+		if (!changeSetSummary.containsKey(filePath)) {
+			// file not part of change set, so its entropy is 0
+			return 0.0;
 		}
-
-		final double entropyOfChangePeriod = computeEntropyOfPeriod(changePeriodSummary);
-		final int numberOfChangedLinesInChangedFile = changePeriodSummary.get(filePath);
-		final int numberOfChangedLinesInChangePeriod = changePeriodSummary.values().stream().reduce(0, Integer::sum);
-
-		return entropyOfChangePeriod * ((double) numberOfChangedLinesInChangedFile / (double) numberOfChangedLinesInChangePeriod);
+		final double entropyOfChangeSet = computeEntropyOfChangeSet(changeSetSummary);
+		final int numberOfChangedLinesInChangeSet = changeSetSummary.values().stream().reduce(0, Integer::sum);
+		final int numberOfChangedLinesInFile = changeSetSummary.get(filePath);
+		final double proportionOfChangedLinesInFile = (double) numberOfChangedLinesInFile / numberOfChangedLinesInChangeSet;
+		return entropyOfChangeSet * proportionOfChangedLinesInFile;
 	}
 }
