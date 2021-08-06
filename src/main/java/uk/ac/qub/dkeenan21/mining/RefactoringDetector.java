@@ -18,53 +18,6 @@ import static java.util.Arrays.asList;
 public class RefactoringDetector {
 	private final Repository repository;
 
-	// refactoring types recognised by the RefactoringMiner library, enumerated here for filtering purposes
-	private static final String[] refactoringTypeWhiteList = {
-			// classes and interfaces
-			"Extract Superclass", "Extract Subclass", "Extract Class", "Extract Interface",
-
-			// methods
-			"Extract Method", "Inline Method", "Merge Method", "Move Method",
-			"Extract And Move Method", "Move And Inline Method", "Move And Rename Method",
-			"Pull Up Method", "Push Down Method",
-
-			// attributes
-			"Extract Attribute", "Merge Attribute", "Split Attribute", "Move Attribute", "Replace Attribute",
-			"Move And Rename Attribute", "Pull Up Attribute", "Push Down Attribute",
-
-			// miscellaneous
-			"Introduce Polymorphism",
-
-			// IGNORE: folder/package/class
-			// "Move Source Folder", "Change Package", "Move Class", "Move And Rename Class", "Rename Class"
-			// "Convert Anonymous Class to Type",
-
-			// IGNORE: attribute
-			//  "Change Attribute Type",
-			// "Rename Attribute",
-
-			// IGNORE: method
-			// "Rename Method", "Change Return Type"
-
-			// IGNORE: parameter
-			// "Add Parameter", "Remove Parameter", "Merge Parameter", "Split Parameter", "Change Parameter Type",
-			// "Reorder Parameter", "Rename Parameter",
-
-			// IGNORE: variable
-			// "Extract Variable", "Inline Variable", "Merge Variable", "Split Variable", "Change Variable Type",
-			// "Parameterize Variable", "Replace Variable With Attribute", "Rename Variable"
-
-			// IGNORE: annotation
-			// "Add Class Annotation", "Add Attribute Annotation", "Add Method Annotation", "Add Parameter Annotation",
-			// "Add Variable Annotation", "Modify Class Annotation", "Modify Attribute Annotation",
-			// "Modify Method Annotation", "Modify Parameter Annotation", "Modify Variable Annotation",
-			// "Remove Class Annotation", "Remove Attribute Annotation",  "Remove Method Annotation",
-			// "Remove Parameter Annotation", "Remove Variable Annotation"
-
-			// IGNORE: thrown exception
-			// "Add Thrown Exception Type", "Remove Thrown Exception Type",
-	};
-
 	/**
 	 * Constructor which accepts a path to a repository
 	 *
@@ -83,9 +36,10 @@ public class RefactoringDetector {
 	 * @return a map containing an entry for each refactoring type occurring in the change period
 	 * entries are of the form: [file path -> [refactoring type -> number of occurrences]]
 	 */
-	public Map<String, Map<String, Integer>> summariseRefactorings(String startCommitId, String endCommitId) {
+	public Map<String, Map<String, Integer>> summariseRefactorings(String startCommitId, String endCommitId,
+																   String[] refactoringTypesToInclude) {
 		// extract all refactorings applied during the period
-		final Iterable<Refactoring> refactorings = extractRefactorings(startCommitId, endCommitId);
+		final Iterable<Refactoring> refactorings = extractRefactorings(startCommitId, endCommitId, refactoringTypesToInclude);
 
 		// extract the file paths of the refactored files
 		final Set<String> filePaths = new HashSet<>();
@@ -123,13 +77,15 @@ public class RefactoringDetector {
 	 * @param endCommitId   the ID of the last commit in the change period
 	 * @return the extracted refactorings
 	 */
-	private Iterable<Refactoring> extractRefactorings(String startCommitId, String endCommitId) {
+	private Iterable<Refactoring> extractRefactorings(String startCommitId, String endCommitId,
+													  String[] refactoringTypesToInclude) {
 		final GitHistoryRefactoringMiner gitHistoryRefactoringMiner = new GitHistoryRefactoringMinerImpl();
 		final List<Refactoring> refactorings = new ArrayList<>();
 		try {
-			gitHistoryRefactoringMiner.detectAtCommit(repository, startCommitId, refactoringHandler(refactorings));
+			gitHistoryRefactoringMiner.detectAtCommit(repository, startCommitId, refactoringHandler(refactorings,
+					refactoringTypesToInclude));
 			gitHistoryRefactoringMiner.detectBetweenCommits(repository, startCommitId, endCommitId,
-					refactoringHandler(refactorings));
+					refactoringHandler(refactorings, refactoringTypesToInclude));
 		} catch (Exception exception) {
 			Logger.error("An error occurred while extracting the refactorings from a change period");
 			exception.printStackTrace();
@@ -144,7 +100,7 @@ public class RefactoringDetector {
 	 * @param refactorings the list of refactorings to be handled by the refactoring handler
 	 * @return the refactoring handler
 	 */
-	private RefactoringHandler refactoringHandler(List<Refactoring> refactorings) {
+	private RefactoringHandler refactoringHandler(List<Refactoring> refactorings, String[] refactoringTypesToInclude) {
 		return new RefactoringHandler() {
 			@Override
 			public void handle(String commitId, List<Refactoring> refactoringsInCommit) {
@@ -153,7 +109,7 @@ public class RefactoringDetector {
 					Logger.debug("– " + refactoring.toString());
 
 					// filtering by refactoring type
-					if (!asList(refactoringTypeWhiteList).contains(refactoring.getName())) {
+					if (!asList(refactoringTypesToInclude).contains(refactoring.getName())) {
 						continue;
 					}
 

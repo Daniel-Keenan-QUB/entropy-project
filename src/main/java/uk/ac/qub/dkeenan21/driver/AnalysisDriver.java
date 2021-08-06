@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
- * Analyses the version history of a repository
+ * Orchestrates the analysis of the version history of a Git repository
  * Records the entropy and number of each type of refactoring occurring in each change period
  * Writes the results to a CSV file
  */
@@ -21,6 +21,20 @@ public class AnalysisDriver {
 	private final ChangeDetector changeDetector;
 	private final RefactoringDetector refactoringDetector;
 
+	private static final String[] fileTypesToInclude = new String[]{".java"};
+
+	private static final String[] filePathPatternsToExclude = new String[]{
+			"test/", "tests/", "tester/", "testers/", "androidTest/",
+			"Test.java", "Tests.java", "Tester.java", "Testers.java"
+	};
+
+	private static final String[] refactoringTypesToInclude = {
+			"Extract Superclass", "Extract Subclass", "Extract Class", "Extract Interface", "Extract Method",
+			"Inline Method", "Merge Method", "Move Method", "Extract And Move Method", "Move And Inline Method",
+			"Move And Rename Method", "Pull Up Method", "Push Down Method", "Extract Attribute", "Merge Attribute",
+			"Split Attribute", "Move Attribute", "Replace Attribute", "Move And Rename Attribute", "Pull Up Attribute",
+			"Push Down Attribute", "Introduce Polymorphism",
+	};
 	/**
 	 * Constructor which accepts a path to a repository
 	 *
@@ -58,13 +72,14 @@ public class AnalysisDriver {
 				i = numberOfCommits - 1;
 			}
 			final String endCommitId = commits.get(i).getName();
-			final Map<String, Integer> changesSummary = changeDetector.summariseChanges(startCommitId, endCommitId);
+			final Map<String, Integer> changesSummary = changeDetector.summariseChanges(startCommitId, endCommitId,
+					fileTypesToInclude, filePathPatternsToExclude);
 			periodSummaries.add(changesSummary);
 			final double entropy = entropyComputer.computeEntropyOfChangeSet(changesSummary);
 			final String entropyString = String.format("%.4f", entropy);
 			Logger.info("Entropy = " + entropyString);
 			final Map<String, Map<String, Integer>> refactoringsSummary = refactoringDetector.summariseRefactorings(
-					startCommitId, endCommitId);
+					startCommitId, endCommitId, refactoringTypesToInclude);
 			refactoringPeriodSummaries.add(refactoringsSummary);
 		}
 
@@ -128,8 +143,8 @@ public class AnalysisDriver {
 			// -------- if reached this point, we are calculating the percentage change between periods --------
 
 			// includeOnlyPeriodsInWhichFileWasChanged MUST be true
-			final boolean calculatePercentageChangeBetweenAdjacentNonRefactoringPeriods = false;
-			final boolean calculateAveragePercentageChangeBeforeAndAfterRefactoringPeriods = true;
+			final boolean calculatePercentageChangeBetweenAdjacentNonRefactoringPeriods = true;
+			final boolean calculateAveragePercentageChangeBeforeAndAfterRefactoringPeriods = false;
 
 			if (calculatePercentageChangeBetweenAdjacentNonRefactoringPeriods) {
 				boolean previousPeriodWasNonRefactoringPeriod = false;

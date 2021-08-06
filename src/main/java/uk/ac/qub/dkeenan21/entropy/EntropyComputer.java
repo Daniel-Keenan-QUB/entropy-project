@@ -11,7 +11,7 @@ public class EntropyComputer {
 	 *
 	 * @param changeSetSummary a map containing an entry for each file in the change set
 	 *                         entries are of the form: [path -> number of changed lines]
-	 * @return the entropy value
+	 * @return the entropy
 	 */
 	public double computeEntropyOfChangeSet(Map<String, Integer> changeSetSummary) {
 		final int numberOfChangedLinesInChangeSet = changeSetSummary.values().stream().reduce(0, Integer::sum);
@@ -33,9 +33,9 @@ public class EntropyComputer {
 	 * Computes the entropy of a file in a change set
 	 *
 	 * @param changeSetSummary a map containing an entry for each file in the change set
-	 *                         entries are of the form [path -> number of changed lines]
+	 *                         entries are of the form: [path -> number of changed lines]
 	 * @param filePath         the file path
-	 * @return the entropy value
+	 * @return the entropy
 	 */
 	public double computeEntropyOfFileInChangeSet(Map<String, Integer> changeSetSummary, String filePath) {
 		if (!changeSetSummary.containsKey(filePath)) {

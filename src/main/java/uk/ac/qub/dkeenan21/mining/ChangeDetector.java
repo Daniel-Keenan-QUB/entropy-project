@@ -68,14 +68,16 @@ public class ChangeDetector {
 	 * @return a map containing an entry for each changed file in the change period
 	 * entries are of the form [key = path, value = number of changed lines]
 	 */
-	public Map<String, Integer> summariseChanges(String startCommitId, String endCommitId) {
+	public Map<String, Integer> summariseChanges(String startCommitId, String endCommitId, String[] fileTypesToInclude,
+												 String[] filePathPatternsToExclude) {
 		try {
 			validateCommitOrder(startCommitId, endCommitId);
 			final Iterable<RevCommit> commits = extractNonMergeCommits(startCommitId, endCommitId);
 			final Map<String, Integer> changePeriodSummary = new TreeMap<>();
 			for (RevCommit commit : commits) {
 				Logger.debug("Listing changes in commit " + commit.getName());
-				final Iterable<DiffEntry> fileChanges = extractFileChanges(commit);
+				final Iterable<DiffEntry> fileChanges = extractFileChanges(commit, fileTypesToInclude,
+						filePathPatternsToExclude);
 				for (DiffEntry fileChange : fileChanges) {
 					// a value of '/dev/null' indicates file addition/deletion for an old/new path respectively
 					final String changedFilePath = fileChange.getOldPath().equals("/dev/null") ? fileChange.getNewPath()
@@ -135,7 +137,8 @@ public class ChangeDetector {
 	 * @param commit the commit
 	 * @return the file changes
 	 */
-	private Iterable<DiffEntry> extractFileChanges(RevCommit commit) {
+	private Iterable<DiffEntry> extractFileChanges(RevCommit commit, String[] fileTypesToInclude,
+												   String[] filePathPatternsToExclude) {
 		final List<DiffEntry> fileChanges;
 		try (final DiffFormatter diffFormatter = generateDiffFormatter()) {
 			// extract file changes by comparing the commit tree with that of its parent
@@ -151,8 +154,7 @@ public class ChangeDetector {
 				parentCommitTreeIterator = new EmptyTreeIterator();
 			}
 
-			// extract the file changes for all '.java' files
-			diffFormatter.setPathFilter(PathSuffixFilter.create(".java"));
+			diffFormatter.setPathFilter(generateFileTypeWhitelistTreeFilter(fileTypesToInclude));
 			fileChanges = diffFormatter.scan(parentCommitTreeIterator, commitTreeIterator);
 		} catch (Exception exception) {
 			Logger.error("An error occurred while extracting the file changes from a commit");
@@ -164,20 +166,18 @@ public class ChangeDetector {
 		// JGit path filters do not support filtering on glob patterns
 		// also, negations of path suffix filters do not work (https://bugs.eclipse.org/bugs/show_bug.cgi?id=574253)
 		// therefore, we must filter out test files using our own pattern-matching approach for now
-		final String[] regexes = new String[]{"test/", "tests/", "tester/", "testers/", "androidTest/",
-				"Test.java", "Tests.java", "Tester.java", "Testers.java"};
-		final Set<Pattern> exclusionPatterns = new HashSet<>();
-		for (String regex : regexes) {
-			exclusionPatterns.add(Pattern.compile(regex));
+		final Set<Pattern> filePathRegexesToExclude = new HashSet<>();
+		for (String regex : filePathPatternsToExclude) {
+			filePathRegexesToExclude.add(Pattern.compile(regex));
 		}
 
 		// remove test files from consideration by testing each file path against the defined exclusion patterns
 		final Iterator<DiffEntry> iterator = fileChanges.iterator();
 		while (iterator.hasNext()) {
 			final DiffEntry fileChange = iterator.next();
-			for (Pattern exclusionPattern : exclusionPatterns) {
-				if (exclusionPattern.matcher(fileChange.getOldPath()).find() ||
-						exclusionPattern.matcher(fileChange.getNewPath()).find()) {
+			for (Pattern filePathRegexToExclude : filePathRegexesToExclude) {
+				if (filePathRegexToExclude.matcher(fileChange.getOldPath()).find() ||
+						filePathRegexToExclude.matcher(fileChange.getNewPath()).find()) {
 					iterator.remove();
 					break;
 				}
@@ -264,5 +264,26 @@ public class ChangeDetector {
 		final DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
 		diffFormatter.setRepository(repository);
 		return diffFormatter;
+	}
+
+	/**
+	 * Creates and configures a tree filter enforcing a whitelist of file types
+	 *
+	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
+	 * @return a tree filter enforcing the whitelist of file types
+	 */
+	private TreeFilter generateFileTypeWhitelistTreeFilter(String[] fileTypeWhitelist) {
+		final List<TreeFilter> treeFilters = new ArrayList<>();
+		for (String fileType : fileTypeWhitelist) {
+			final TreeFilter treeFilter = PathSuffixFilter.create(fileType);
+			treeFilters.add(treeFilter);
+		}
+		if (treeFilters.size() == 0) {
+			return TreeFilter.ALL;
+		} else if (treeFilters.size() == 1) {
+			return treeFilters.get(0);
+		} else {
+			return OrTreeFilter.create(treeFilters.toArray(new TreeFilter[0]));
+		}
 	}
 }
