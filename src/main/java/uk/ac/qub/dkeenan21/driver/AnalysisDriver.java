@@ -35,6 +35,7 @@ public class AnalysisDriver {
 			"Split Attribute", "Move Attribute", "Replace Attribute", "Move And Rename Attribute", "Pull Up Attribute",
 			"Push Down Attribute", "Introduce Polymorphism",
 	};
+
 	/**
 	 * Constructor which accepts a path to a repository
 	 *
@@ -52,7 +53,7 @@ public class AnalysisDriver {
 	 *
 	 * @param changePeriodSize the number of commits defining one change period
 	 */
-	public void analyse(int changePeriodSize) {
+	public void analyse(int changePeriodSize, int mode) {
 		if (changePeriodSize < 1) {
 			Logger.error("Change period size must be at least 1");
 			System.exit(1);
