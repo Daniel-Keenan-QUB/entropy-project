@@ -22,13 +22,13 @@ public class EntropyComputerTest {
 	}
 
 	@Test
-	public void computeEntropy_zeroFilesChanged() {
+	public void computeEntropyOfChangeSet_zeroFilesChanged() {
 		final double entropy = entropyComputer.computeEntropyOfChangeSet(changeSetSummary);
 		assertEquals(0.0, entropy);
 	}
 
 	@Test
-	public void computeEntropy_singleFileChanged_zeroLinesChanged() {
+	public void computeEntropyOfChangeSet_singleFileChanged_zeroLinesChanged() {
 		// note: zero-line changes are anomalous should be ignored in computation
 		changeSetSummary.put("File A", 0);
 		final double entropy = entropyComputer.computeEntropyOfChangeSet(changeSetSummary);
@@ -36,21 +36,21 @@ public class EntropyComputerTest {
 	}
 
 	@Test
-	public void computeEntropy_singleFileChanged_singleLineChanged() {
+	public void computeEntropyOfChangeSet_singleFileChanged_singleLineChanged() {
 		changeSetSummary.put("File A", 1);
 		final double entropy = entropyComputer.computeEntropyOfChangeSet(changeSetSummary);
 		assertEquals(0.0, entropy);
 	}
 
 	@Test
-	public void computeEntropy_singleFileChanged_multipleLinesChanged() {
+	public void computeEntropyOfChangeSet_singleFileChanged_multipleLinesChanged() {
 		changeSetSummary.put("File A", 25);
 		final double entropy = entropyComputer.computeEntropyOfChangeSet(changeSetSummary);
 		assertEquals(0.0, entropy);
 	}
 
 	@Test
-	public void computeEntropy_multipleFilesChanged_zeroLinesChangedInEach() {
+	public void computeEntropyOfChangeSet_multipleFilesChanged_zeroLinesChangedInEach() {
 		// note: zero-line changes are anomalous should be ignored in computation
 		changeSetSummary.put("File A", 0);
 		changeSetSummary.put("File B", 0);
@@ -65,7 +65,7 @@ public class EntropyComputerTest {
 	}
 
 	@Test
-	public void computeEntropy_multipleFilesChanged_singleLineChangedInEach() {
+	public void computeEntropyOfChangeSet_multipleFilesChanged_singleLineChangedInEach() {
 		changeSetSummary.put("File A", 1);
 		changeSetSummary.put("File B", 1);
 		changeSetSummary.put("File C", 1);
@@ -79,7 +79,7 @@ public class EntropyComputerTest {
 	}
 
 	@Test
-	public void computeEntropy_multipleFilesChanged_multipleLinesChangedInEach_changesEvenlyDistributed() {
+	public void computeEntropyOfChangeSet_multipleFilesChanged_multipleLinesChangedInEach_changesEvenlyDistributed() {
 		changeSetSummary.put("File A", 25);
 		changeSetSummary.put("File B", 25);
 		changeSetSummary.put("File C", 25);
@@ -93,7 +93,7 @@ public class EntropyComputerTest {
 	}
 
 	@Test
-	public void computeEntropy_multipleFilesChanged_multipleLinesChangedInEach_changesUnevenlyDistributed() {
+	public void computeEntropyOfChangeSet_multipleFilesChanged_multipleLinesChangedInEach_changesUnevenlyDistributed() {
 		changeSetSummary.put("File A", 33);
 		changeSetSummary.put("File B", 25);
 		changeSetSummary.put("File C", 10);
@@ -107,7 +107,7 @@ public class EntropyComputerTest {
 	}
 
 	@Test
-	public void computeEntropy_multipleFilesChanged_changesUnevenlyDistributed2() {
+	public void computeEntropyOfChangeSet_multipleFilesChanged_changesUnevenlyDistributed2() {
 		changeSetSummary.put("File A", 250);
 		changeSetSummary.put("File B", 250);
 		changeSetSummary.put("File C", 125);
@@ -119,7 +119,7 @@ public class EntropyComputerTest {
 	}
 
 	@Test
-	public void computeEntropy_multipleFilesChanged_changesUnevenlyDistributed3() {
+	public void computeEntropyOfChangeSet_multipleFilesChanged_changesUnevenlyDistributed3() {
 		changeSetSummary.put("File A", 3);
 		changeSetSummary.put("File B", 3);
 		changeSetSummary.put("File C", 6);
@@ -128,7 +128,7 @@ public class EntropyComputerTest {
 	}
 
 	@Test
-	public void computeEntropy_multipleFilesChanged_multipleLinesChangedInEach_changesVeryUnevenlyDistributed() {
+	public void computeEntropyOfChangeSet_multipleFilesChanged_multipleLinesChangedInEach_changesVeryUnevenlyDistributed() {
 		changeSetSummary.put("File A", 71);
 		changeSetSummary.put("File B", 10);
 		changeSetSummary.put("File C", 5);
@@ -142,7 +142,7 @@ public class EntropyComputerTest {
 	}
 
 	@Test
-	public void computeEntropy_multipleFilesChanged_mixOfZeroAndSingleAndMultipleLinesChangedInEach() {
+	public void computeEntropyOfChangeSet_multipleFilesChanged_mixOfZeroAndSingleAndMultipleLinesChangedInEach() {
 		changeSetSummary.put("File A", 18);
 		changeSetSummary.put("File B", 12);
 		changeSetSummary.put("File C", 7);
@@ -153,5 +153,41 @@ public class EntropyComputerTest {
 		changeSetSummary.put("File H", 0);
 		final double entropy = entropyComputer.computeEntropyOfChangeSet(changeSetSummary);
 		assertEquals(1.878685982661894, entropy);
+	}
+
+	@Test
+	public void computeEntropyOfFileInChangeSet_fileNotPresentInChangeSet() {
+		changeSetSummary.put("File A", 10);
+		changeSetSummary.put("File B", 10);
+		final double entropy = entropyComputer.computeEntropyOfFileInChangeSet(changeSetSummary, "File C");
+		assertEquals(0.0, entropy);
+	}
+
+	@Test
+	public void computeEntropyOfFileInChangeSet_zeroLinesChangedInFile() {
+		changeSetSummary.put("File A", 10);
+		changeSetSummary.put("File B", 10);
+		changeSetSummary.put("File C", 0);
+		final double entropy = entropyComputer.computeEntropyOfFileInChangeSet(changeSetSummary, "File C");
+		assertEquals(0.0, entropy);
+	}
+
+	@Test
+	public void computeEntropyOfFileInChangeSet_halfOfTotalLinesChangedInFile() {
+		changeSetSummary.put("File A", 3);
+		changeSetSummary.put("File B", 3);
+		changeSetSummary.put("File C", 6);
+		final double entropy = entropyComputer.computeEntropyOfFileInChangeSet(changeSetSummary, "File C");
+		assertEquals(0.75, entropy);
+	}
+
+	@Test
+	public void computeEntropyOfFileInChangeSet_quarterOfTotalLinesChangedInFile() {
+		changeSetSummary.put("File A", 10);
+		changeSetSummary.put("File B", 10);
+		changeSetSummary.put("File C", 10);
+		changeSetSummary.put("File D", 10);
+		final double entropy = entropyComputer.computeEntropyOfFileInChangeSet(changeSetSummary, "File D");
+		assertEquals(0.5, entropy);
 	}
 }

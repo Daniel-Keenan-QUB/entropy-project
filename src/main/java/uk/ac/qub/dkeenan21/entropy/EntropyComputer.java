@@ -3,7 +3,7 @@ package uk.ac.qub.dkeenan21.entropy;
 import java.util.Map;
 
 /**
- * Computes source code change entropy (or simply 'entropy')
+ * Computes source code change entropy
  */
 public class EntropyComputer {
 	/**
@@ -19,7 +19,7 @@ public class EntropyComputer {
 		for (Map.Entry<String, Integer> entry : changeSetSummary.entrySet()) {
 			final int numberOfChangedLinesInFile = entry.getValue();
 			if (numberOfChangedLinesInFile < 1) {
-				// file listed as '0 lines changed', so exclude from computation
+				// file has no changed lines, so exclude from computation
 				continue;
 			}
 			final double proportionOfChangedLinesInFile = (double) numberOfChangedLinesInFile / numberOfChangedLinesInChangeSet;
