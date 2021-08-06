@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,9 +40,9 @@ public class Application {
 
 		// load filters from config file and extract the individual filter groups
 		final Map<String, List<String>> filterGroups = loadFiltersFromConfigFile();
-		final String[] fileTypesToInclude = filterGroups.get("file_types_to_include").toArray(new String[0]);
-		final String[] filePathPatternsToExclude = filterGroups.get("file_path_patterns_to_exclude").toArray(new String[0]);
-		final String[] refactoringTypesToInclude = filterGroups.get("refactoring_types_to_include").toArray(new String[0]);
+		final String[] fileTypesToInclude = extractFilterGroup(filterGroups, "file_types_to_include");
+		final String[] filePathPatternsToExclude = extractFilterGroup(filterGroups, "file_path_patterns_to_exclude");
+		final String[] refactoringTypesToInclude = extractFilterGroup(filterGroups, "refactoring_types_to_include");
 
 		// construct and delegate responsibility to an AnalysisDriver
 		final AnalysisDriver analysisDriver = new AnalysisDriver(repositoryPath, periodLength, mode,
@@ -183,6 +184,24 @@ public class Application {
 			System.exit(1);
 		}
 		final Yaml yaml = new Yaml();
-		return yaml.load(inputStream);
+		final Map<String, List<String>> filters = yaml.load(inputStream);
+		return filters != null ? filters : new HashMap<>();
+	}
+
+	/**
+	 * Extracts a filter group from a map of filter groups
+	 * Returns an empty array if the filter group is not found in the map
+	 *
+	 * @param filterGroups a map containing entries of the form: [filter group name -> list of filter strings]
+	 * @param filterGroupName the name of the filter group
+	 * @return the filter group
+	 */
+	private static String[] extractFilterGroup(Map<String, List<String>> filterGroups, String filterGroupName) {
+		final List<String> filterGroup = filterGroups.get(filterGroupName);
+		if (filterGroup != null) {
+			return filterGroup.toArray(new String[0]);
+		} else {
+			return new String[0];
+		}
 	}
 }
