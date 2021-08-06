@@ -40,9 +40,9 @@ public class AnalysisDriver {
 		refactoringDetector = new RefactoringDetector(repositoryPath);
 		this.periodLength = periodLength;
 		this.mode = mode;
-		this.fileTypesToInclude = fileTypesToInclude;
-		this.filePathPatternsToExclude = filePathPatternsToExclude;
-		this.refactoringTypesToInclude = refactoringTypesToInclude;
+		this.fileTypesToInclude = fileTypesToInclude.clone();
+		this.filePathPatternsToExclude = filePathPatternsToExclude.clone();
+		this.refactoringTypesToInclude = refactoringTypesToInclude.clone();
 	}
 
 	/**
