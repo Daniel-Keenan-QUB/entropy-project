@@ -22,5 +22,6 @@ Run the application using a command such as:
 ```
 java -jar csc4006-project-1.0-SNAPSHOT-all.jar \
    --repository-path "path/to/git/repository" \
-   --change-period-size 100
+   --period-length 100 \
+   --mode 1
    ```

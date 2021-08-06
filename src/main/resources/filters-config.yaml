@@ -1,0 +1,41 @@
+---
+# only files with these extensions will be considered
+file_types_to_include:
+  - '.java'
+
+# files with paths containing any of these patterns will not be considered
+file_path_patterns_to_exclude:
+  - 'test/'
+  - 'tests/'
+  - 'tester/'
+  - 'testers/'
+  - 'androidTest/'
+  - 'Test.java'
+  - 'Tests.java'
+  - 'Tester.java'
+  - 'Testers.java'
+
+# only these refactoring types (as named by RefactoringMiner) will be considered
+refactoring_types_to_include:
+  - 'Extract Superclass'
+  - 'Extract Subclass'
+  - 'Extract Class'
+  - 'Extract Interface'
+  - 'Extract Method'
+  - 'Inline Method'
+  - 'Merge Method'
+  - 'Move Method'
+  - 'Extract And Move Method'
+  - 'Move And Inline Method'
+  - 'Move And Rename Method'
+  - 'Pull Up Method'
+  - 'Push Down Method'
+  - 'Extract Attribute'
+  - 'Merge Attribute'
+  - 'Split Attribute'
+  - 'Move Attribute'
+  - 'Replace Attribute'
+  - 'Move And Rename Attribute'
+  - 'Pull Up Attribute'
+  - 'Push Down Attribute'
+  - 'Introduce Polymorphism'

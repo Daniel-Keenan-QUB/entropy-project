@@ -3,17 +3,22 @@ package uk.ac.qub.dkeenan21;
 import org.apache.commons.cli.*;
 import org.apache.log4j.varia.NullAppender;
 import org.tinylog.Logger;
+import org.yaml.snakeyaml.Yaml;
 import uk.ac.qub.dkeenan21.driver.AnalysisDriver;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Map;
 
 import static org.apache.log4j.LogManager.getRootLogger;
 
 /**
- * Entrypoint for the application
- * Parses and validates command-line arguments, then delegates responsibility to other classes
+ * Parses and validates command-line arguments, loads filters from config, and then delegates responsibility
  */
 public class Application {
 	/**
@@ -27,16 +32,21 @@ public class Application {
 		final Options options = generateOptions();
 		final CommandLine commandLine = generateCommandLine(options, arguments);
 
-		final String repositoryPathOptionValue = commandLine.getOptionValue("repository-path");
-		final String periodLengthOptionValue = commandLine.getOptionValue("period-length");
-		final String modeOptionValue = commandLine.getOptionValue("mode");
+		// parse and validate command-line arguments
+		final String repositoryPath = validateRepositoryPath(commandLine.getOptionValue("repository-path"));
+		final int periodLength = parseAndValidatePeriodLength(commandLine.getOptionValue("period-length"));
+		final int mode = parseAndValidateMode(commandLine.getOptionValue("mode"));
 
-		final String repositoryPath = validateRepositoryPath(repositoryPathOptionValue);
-		final int periodLength = parseAndValidatePeriodLength(periodLengthOptionValue);
-		final int mode = parseAndValidateMode(modeOptionValue);
+		// load filters from config file and extract the individual filter groups
+		final Map<String, List<String>> filterGroups = loadFiltersFromConfigFile();
+		final String[] fileTypesToInclude = filterGroups.get("file_types_to_include").toArray(new String[0]);
+		final String[] filePathPatternsToExclude = filterGroups.get("file_path_patterns_to_exclude").toArray(new String[0]);
+		final String[] refactoringTypesToInclude = filterGroups.get("refactoring_types_to_include").toArray(new String[0]);
 
-		final AnalysisDriver analysisDriver = new AnalysisDriver(repositoryPath);
-		analysisDriver.analyse(periodLength, mode);
+		// construct and delegate responsibility to an AnalysisDriver
+		final AnalysisDriver analysisDriver = new AnalysisDriver(repositoryPath, periodLength, mode,
+				fileTypesToInclude, filePathPatternsToExclude, refactoringTypesToInclude);
+		analysisDriver.analyse();
 	}
 
 	/**
@@ -157,5 +167,22 @@ public class Application {
 			System.exit(1);
 		}
 		return mode;
+	}
+
+	/**
+	 * Loads the filters from the relevant config file
+	 *
+	 * @return a map containing entries of the form: [filter group name -> list of filter strings]
+	 */
+	private static Map<String, List<String>> loadFiltersFromConfigFile() {
+		InputStream inputStream = null;
+		try {
+			inputStream = new FileInputStream("src/main/resources/filters-config.yaml");
+		} catch (FileNotFoundException fileNotFoundException) {
+			Logger.error("Filters config file was not found");
+			System.exit(1);
+		}
+		final Yaml yaml = new Yaml();
+		return yaml.load(inputStream);
 	}
 }

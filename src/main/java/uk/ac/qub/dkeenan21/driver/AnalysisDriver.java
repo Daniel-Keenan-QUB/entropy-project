@@ -6,9 +6,7 @@ import uk.ac.qub.dkeenan21.entropy.EntropyComputer;
 import uk.ac.qub.dkeenan21.mining.ChangeDetector;
 import uk.ac.qub.dkeenan21.mining.RefactoringDetector;
 
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -20,41 +18,40 @@ import java.util.*;
 public class AnalysisDriver {
 	private final ChangeDetector changeDetector;
 	private final RefactoringDetector refactoringDetector;
-
-	private static final String[] fileTypesToInclude = new String[]{".java"};
-
-	private static final String[] filePathPatternsToExclude = new String[]{
-			"test/", "tests/", "tester/", "testers/", "androidTest/",
-			"Test.java", "Tests.java", "Tester.java", "Testers.java"
-	};
-
-	private static final String[] refactoringTypesToInclude = {
-			"Extract Superclass", "Extract Subclass", "Extract Class", "Extract Interface", "Extract Method",
-			"Inline Method", "Merge Method", "Move Method", "Extract And Move Method", "Move And Inline Method",
-			"Move And Rename Method", "Pull Up Method", "Push Down Method", "Extract Attribute", "Merge Attribute",
-			"Split Attribute", "Move Attribute", "Replace Attribute", "Move And Rename Attribute", "Pull Up Attribute",
-			"Push Down Attribute", "Introduce Polymorphism",
-	};
+	private final int periodLength;
+	private final int mode;
+	private final String[] fileTypesToInclude;
+	private final String[] filePathPatternsToExclude;
+	private final String[] refactoringTypesToInclude;
 
 	/**
-	 * Constructor which accepts a path to a repository
+	 * Constructor which accepts all parameters necessary to orchestrate analysis of the repository
 	 *
-	 * @param repositoryPath a path to the repository
+	 * @param repositoryPath            a path to the repository
+	 * @param periodLength              the number of commits defining one period
+	 * @param mode                      the mode in which to execute
+	 * @param fileTypesToInclude        the extensions of the only file types to consider
+	 * @param filePathPatternsToExclude the patterns of paths of files to exclude from consideration
+	 * @param refactoringTypesToInclude the only refactoring types (as named by RefactoringMiner) to consider
 	 */
-	public AnalysisDriver(String repositoryPath) {
+	public AnalysisDriver(String repositoryPath, int periodLength, int mode, String[] fileTypesToInclude,
+						  String[] filePathPatternsToExclude, String[] refactoringTypesToInclude) {
 		changeDetector = new ChangeDetector(repositoryPath);
 		refactoringDetector = new RefactoringDetector(repositoryPath);
+		this.periodLength = periodLength;
+		this.mode = mode;
+		this.fileTypesToInclude = fileTypesToInclude;
+		this.filePathPatternsToExclude = filePathPatternsToExclude;
+		this.refactoringTypesToInclude = refactoringTypesToInclude;
 	}
 
 	/**
 	 * Computes entropy and detects refactorings for each change period in the version history of the repository
 	 * The final (most recent) change period may have fewer commits than the defined change period size
 	 * Results are written to CSV files 'results-high-level.csv' and 'results-low-level.csv'
-	 *
-	 * @param changePeriodSize the number of commits defining one change period
 	 */
-	public void analyse(int changePeriodSize, int mode) {
-		if (changePeriodSize < 1) {
+	public void analyse() {
+		if (periodLength < 1) {
 			Logger.error("Change period size must be at least 1");
 			System.exit(1);
 		}
@@ -67,8 +64,8 @@ public class AnalysisDriver {
 
 		for (int i = 0; i < numberOfCommits; i++) {
 			final String startCommitId = commits.get(i).getName();
-			if (numberOfCommits - i >= changePeriodSize) {
-				i += changePeriodSize - 1;
+			if (numberOfCommits - i >= periodLength) {
+				i += periodLength - 1;
 			} else {
 				i = numberOfCommits - 1;
 			}
