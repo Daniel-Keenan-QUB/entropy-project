@@ -1,9 +1,6 @@
 # CSC4006 | Research and Development Project
 
-This command-line tool mines the version history of a Git repository, and for each change period (sequence of commits of given length) in its evolution:
-
-* computes the source code change entropy
-* counts the occurrences of each refactoring type applied
+This command-line tool measures the source code change entropy observed throughout the evolution of a Git repository.
 
 The project uses the Gradle build tool and is supported by a GitLab CI pipeline.
 
@@ -25,3 +22,15 @@ java -jar csc4006-project-1.0-SNAPSHOT-all.jar \
    --period-length 100 \
    --mode 1
    ```
+
+### Modes
+
+There are seven modes in which the application can run:
+
+1. Record entropy for each period
+2. Record file entropy for each period
+3. Record file entropy for each period and mark periods in which file was refactored
+4. Record file entropy for each period in which file was changed
+5. Record file entropy for each period in which file was changed and mark periods in which file was refactored
+6. Record percentage change in file entropy between periods in which the file was changed but not refactored
+7. Record percentage change in mean file entropy (across periods in which the file was changed but not refactored) before and after periods in which file was refactored

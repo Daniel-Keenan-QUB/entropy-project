@@ -28,12 +28,12 @@ public class RefactoringDetector {
 	}
 
 	/**
-	 * todo: update documentation here
-	 * Generates a map representing a summary of the refactorings in a change period
+	 * Generates a map representing a summary of the refactorings in a period
 	 *
-	 * @param startCommitId the ID of the first commit in the change period
-	 * @param endCommitId   the ID of the last commit in the change period
-	 * @return a map containing an entry for each refactoring type occurring in the change period
+	 * @param startCommitId             the ID of the first commit in the period
+	 * @param endCommitId               the ID of the last commit in the period
+	 * @param refactoringTypesToInclude the only refactoring types (as named by RefactoringMiner) to consider
+	 * @return a map containing an entry for each refactoring type occurring in the period
 	 * entries are of the form: [file path -> [refactoring type -> number of occurrences]]
 	 */
 	public Map<String, Map<String, Integer>> summariseRefactorings(String startCommitId, String endCommitId,
@@ -50,7 +50,7 @@ public class RefactoringDetector {
 
 		// for each file
 		final Map<String, Map<String, Integer>> overallSummary = new HashMap<>();
-		for (String filePath: filePaths) {
+		for (String filePath : filePaths) {
 			final Map<String, Integer> refactoringSummary = new HashMap<>();
 			// for each refactoring
 			for (Refactoring refactoring : refactorings) {
@@ -71,10 +71,11 @@ public class RefactoringDetector {
 	}
 
 	/**
-	 * Extracts the refactorings from a change period
+	 * Extracts the refactorings from a period
 	 *
-	 * @param startCommitId the ID of the first commit in the change period
-	 * @param endCommitId   the ID of the last commit in the change period
+	 * @param startCommitId             the ID of the first commit in the period
+	 * @param endCommitId               the ID of the last commit in the period
+	 * @param refactoringTypesToInclude the only refactoring types (as named by RefactoringMiner) to consider
 	 * @return the extracted refactorings
 	 */
 	private Iterable<Refactoring> extractRefactorings(String startCommitId, String endCommitId,
@@ -87,7 +88,7 @@ public class RefactoringDetector {
 			gitHistoryRefactoringMiner.detectBetweenCommits(repository, startCommitId, endCommitId,
 					refactoringHandler(refactorings, refactoringTypesToInclude));
 		} catch (Exception exception) {
-			Logger.error("An error occurred while extracting the refactorings from a change period");
+			Logger.error("An error occurred while extracting the refactorings from a period");
 			exception.printStackTrace();
 			System.exit(1);
 		}
@@ -95,9 +96,10 @@ public class RefactoringDetector {
 	}
 
 	/**
-	 * Creates and configures a refactoring handler
+	 * Generates a refactoring handler
 	 *
-	 * @param refactorings the list of refactorings to be handled by the refactoring handler
+	 * @param refactorings              the list of refactorings to be handled by the refactoring handler
+	 * @param refactoringTypesToInclude the only refactoring types (as named by RefactoringMiner) to consider
 	 * @return the refactoring handler
 	 */
 	private RefactoringHandler refactoringHandler(List<Refactoring> refactorings, String[] refactoringTypesToInclude) {
@@ -108,7 +110,7 @@ public class RefactoringDetector {
 				for (Refactoring refactoring : refactoringsInCommit) {
 					Logger.debug("– " + refactoring.toString());
 
-					// filtering by refactoring type
+					// filter by refactoring type
 					if (!asList(refactoringTypesToInclude).contains(refactoring.getName())) {
 						continue;
 					}

@@ -20,7 +20,7 @@ import java.util.Map;
 import static org.apache.log4j.LogManager.getRootLogger;
 
 /**
- * Parses and validates command-line arguments, loads filters from config, and then delegates responsibility
+ * Parses and validates command-line arguments, loads filters from config file, and delegates responsibility
  */
 public class Application {
 	/**
@@ -35,7 +35,8 @@ public class Application {
 		final CommandLine commandLine = generateCommandLine(options, arguments);
 
 		// parse and validate command-line arguments
-		final String repositoryPath = validateRepositoryPath(commandLine.getOptionValue("repository-path"));
+		final String repositoryPath = commandLine.getOptionValue("repository-path");
+		validateRepositoryPath(repositoryPath);
 		final int periodLength = parseAndValidatePeriodLength(commandLine.getOptionValue("period-length"));
 		final int mode = parseAndValidateMode(commandLine.getOptionValue("mode"));
 
@@ -47,7 +48,7 @@ public class Application {
 
 		// construct and delegate responsibility to an AnalysisDriver
 		final AnalysisDriver analysisDriver = new AnalysisDriver(repositoryPath, periodLength, mode,
-				fileTypesToInclude, filePathPatternsToExclude, refactoringTypesToInclude);
+				fileTypesToInclude, filePathPatternsToExclude, refactoringTypesToInclude, "results.csv");
 		analysisDriver.analyse();
 	}
 
@@ -97,7 +98,7 @@ public class Application {
 	/**
 	 * Generates a command line representation
 	 *
-	 * @param options the supported options
+	 * @param options   the supported options
 	 * @param arguments the arguments used
 	 * @return the command line representation
 	 */
@@ -115,25 +116,27 @@ public class Application {
 	}
 
 	/**
-	 * Validates the repository path
+	 * Validates that the repository path is a path to an existing directory
+	 * Logs an error message and terminates the application if it fails validation
 	 *
-	 * @param repositoryPathOptionValue the repository path option value
-	 * @return the repository path
+	 * @param repositoryPath the repository path
 	 */
-	private static String validateRepositoryPath(String repositoryPathOptionValue) {
-		final Path path = Paths.get(repositoryPathOptionValue);
+	private static void validateRepositoryPath(String repositoryPath) {
+		final Path path = Paths.get(repositoryPath);
 		if (!Files.isDirectory(path)) {
-			Logger.error("Repository path is not a path to a directory");
+			Logger.error("Repository path is not a path to an existing directory");
 			System.exit(1);
 		}
-		return repositoryPathOptionValue;
 	}
 
 	/**
-	 * Parses and validates the period length
+	 * Parses the period length in its command-line option value (string) form
+	 * Validates that it is a positive integer
+	 * Returns the period length as an integer if it passes validation
+	 * Logs an error message and terminates the application if it fails validation
 	 *
-	 * @param periodLengthOptionValue the period length option value
-	 * @return the period length
+	 * @param periodLengthOptionValue the period length in its command-line option value (string) form
+	 * @return the period length as an integer
 	 */
 	private static int parseAndValidatePeriodLength(String periodLengthOptionValue) {
 		int periodLength = 0;
@@ -151,10 +154,13 @@ public class Application {
 	}
 
 	/**
-	 * Parses and validates the mode
+	 * Parses the mode in its command-line option value (string) form
+	 * Validates that it is an integer between 1 and 7
+	 * Returns the mode as an integer if it passes validation
+	 * Logs an error message and terminates the application if it fails validation
 	 *
-	 * @param modeOptionValue the mode option value
-	 * @return the mode
+	 * @param modeOptionValue the mode in its command-line option value (string) form
+	 * @return the mode as an integer
 	 */
 	private static int parseAndValidateMode(String modeOptionValue) {
 		int mode = 0;
@@ -197,7 +203,7 @@ public class Application {
 	 * Extracts a filter group from a map of filters
 	 * Returns an empty array if the filter group is not found in the map
 	 *
-	 * @param filters a map containing entries of the form: [filter group name -> list of filter strings]
+	 * @param filters         a map containing entries of the form: [filter group name -> list of filter strings]
 	 * @param filterGroupName the name of the filter group
 	 * @return the filter group
 	 */

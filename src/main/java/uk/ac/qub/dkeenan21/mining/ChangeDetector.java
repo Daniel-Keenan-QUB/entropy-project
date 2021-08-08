@@ -38,42 +38,57 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Extracts all non-merge commits from the repository
+	 * Extracts the IDs of all non-merge commits from the version history of the repository
 	 *
-	 * @return the non-merge commits
+	 * @return the non-merge commit IDs
 	 */
-	public List<RevCommit> extractNonMergeCommits() {
+	public List<String> extractNonMergeCommitIds() {
+		// extract all commits
+		final Iterable<RevCommit> commits;
 		try {
 			final ObjectId head = repository.resolve(Constants.HEAD);
-			final Iterable<RevCommit> commits = new Git(repository).log().add(head).call();
-			final List<RevCommit> nonMergeCommits = StreamSupport.stream(commits.spliterator(), false)
-					.filter(commit -> commit.getParentCount() < 2)
-					.collect(Collectors.toList());
-			Collections.reverse(nonMergeCommits);
-			Logger.debug("Extracted " + nonMergeCommits.size() + " non-merge commits");
-			return nonMergeCommits;
+			commits = new Git(repository).log().add(head).call();
 		} catch (Exception exception) {
 			Logger.error("An error occurred while extracting the non-merge commits from the repository");
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
 		}
+
+		// discard merge commits
+		final List<RevCommit> nonMergeCommits = StreamSupport.stream(commits.spliterator(), false)
+				.filter(commit -> commit.getParentCount() < 2)
+				.collect(Collectors.toList());
+
+		// make the order of commits chronological
+		Collections.reverse(nonMergeCommits);
+
+		// extract the IDs of the commits
+		final List<String> nonMergeCommitIds = new ArrayList<>();
+		for (RevCommit nonMergeCommit : nonMergeCommits) {
+			nonMergeCommitIds.add(nonMergeCommit.getName());
+		}
+		Logger.debug("Extracted " + nonMergeCommits.size() + " non-merge commits");
+
+		return nonMergeCommitIds;
 	}
 
 	/**
-	 * Generates a map representing a summary of the changes in a change period
+	 * Generates a map representing a summary of the changes in a period
 	 *
-	 * @param startCommitId the ID of the first commit in the change period
-	 * @param endCommitId   the ID of the last commit in the change period
-	 * @return a map containing an entry for each changed file in the change period
-	 * entries are of the form [key = path, value = number of changed lines]
+	 * @param startCommitId             the ID of the first commit in the period
+	 * @param endCommitId               the ID of the last commit in the period
+	 * @param fileTypesToInclude        the extensions of the only file types to consider
+	 * @param filePathPatternsToExclude the patterns of paths of files to exclude from consideration
+	 * @return a map containing an entry for each changed file in the period
+	 * entries are of the form: [path -> number of changed lines]
 	 */
 	public Map<String, Integer> summariseChanges(String startCommitId, String endCommitId, String[] fileTypesToInclude,
 												 String[] filePathPatternsToExclude) {
 		try {
 			validateCommitOrder(startCommitId, endCommitId);
 			final Iterable<RevCommit> commits = extractNonMergeCommits(startCommitId, endCommitId);
-			final Map<String, Integer> changePeriodSummary = new TreeMap<>();
+			final Map<String, Integer> periodSummary = new TreeMap<>();
 			for (RevCommit commit : commits) {
 				Logger.debug("Listing changes in commit " + commit.getName());
 				final Iterable<DiffEntry> fileChanges = extractFileChanges(commit, fileTypesToInclude,
@@ -84,18 +99,18 @@ public class ChangeDetector {
 							: fileChange.getOldPath();
 					final int numberOfChangedLinesInChangedFile = countChangedLines(fileChange);
 					Logger.debug("– " + changedFilePath + " (" + numberOfChangedLinesInChangedFile + " lines)");
-					if (changePeriodSummary.containsKey(changedFilePath)) {
-						changePeriodSummary.put(changedFilePath, changePeriodSummary.get(changedFilePath)
+					if (periodSummary.containsKey(changedFilePath)) {
+						periodSummary.put(changedFilePath, periodSummary.get(changedFilePath)
 								+ numberOfChangedLinesInChangedFile);
 					} else {
-						changePeriodSummary.put(changedFilePath, numberOfChangedLinesInChangedFile);
+						periodSummary.put(changedFilePath, numberOfChangedLinesInChangedFile);
 					}
 				}
 			}
-			logChangePeriodSummary(changePeriodSummary);
-			return changePeriodSummary;
+			logPeriodSummary(periodSummary);
+			return periodSummary;
 		} catch (Exception exception) {
-			Logger.error("An error occurred while summarising the change period");
+			Logger.error("An error occurred while summarising the period");
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
@@ -103,10 +118,10 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Extracts the non-merge commits from a change period
+	 * Extracts the non-merge commits from a period
 	 *
-	 * @param startCommitId the ID of the first commit in the change period
-	 * @param endCommitId   the ID of the last commit in the change period
+	 * @param startCommitId the ID of the first commit in the period
+	 * @param endCommitId   the ID of the last commit in the period
 	 * @return the extracted non-merge commits
 	 */
 	private Iterable<RevCommit> extractNonMergeCommits(String startCommitId, String endCommitId) {
@@ -124,7 +139,7 @@ public class ChangeDetector {
 			Collections.reverse(nonMergeCommits);
 			return nonMergeCommits;
 		} catch (Exception exception) {
-			Logger.error("An error occurred while extracting the non-merge commits from a change period");
+			Logger.error("An error occurred while extracting the non-merge commits from a period");
 			exception.printStackTrace();
 			System.exit(1);
 			return null;
@@ -134,7 +149,9 @@ public class ChangeDetector {
 	/**
 	 * Extracts the file changes from a commit
 	 *
-	 * @param commit the commit
+	 * @param commit                    the commit
+	 * @param fileTypesToInclude        the extensions of the only file types to consider
+	 * @param filePathPatternsToExclude the patterns of paths of files to exclude from consideration
 	 * @return the file changes
 	 */
 	private Iterable<DiffEntry> extractFileChanges(RevCommit commit, String[] fileTypesToInclude,
@@ -237,26 +254,26 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Logs summary information about the changes in a change period
+	 * Logs summary information about the changes in a period
 	 *
-	 * @param changePeriodSummary a map containing an entry for each changed file in the change period
-	 *                            entries are of the form [key = path, value = number of changed lines]
+	 * @param periodSummary a map containing an entry for each changed file in the period
+	 *                      entries are of the form: [path, number of changed lines]
 	 */
-	private void logChangePeriodSummary(Map<String, Integer> changePeriodSummary) {
-		final int numberOfChangedLinesInChangePeriod = changePeriodSummary.values().stream().reduce(0, Integer::sum);
-		Logger.debug("Listing changes over all commits in change period");
-		for (Map.Entry<String, Integer> entry : changePeriodSummary.entrySet()) {
+	private void logPeriodSummary(Map<String, Integer> periodSummary) {
+		final int numberOfChangedLinesInPeriod = periodSummary.values().stream().reduce(0, Integer::sum);
+		Logger.debug("Listing changes over all commits in period");
+		for (Map.Entry<String, Integer> entry : periodSummary.entrySet()) {
 			final String changedFilePath = entry.getKey();
 			final int numberOfChangedLinesInChangedFile = entry.getValue();
 			Logger.debug("– " + changedFilePath + " (" + numberOfChangedLinesInChangedFile + " lines)");
 		}
-		Logger.debug("Summary of changes in change period");
-		Logger.debug("– Number of changed lines = " + numberOfChangedLinesInChangePeriod);
-		Logger.debug("– Number of changed files = " + changePeriodSummary.size());
+		Logger.debug("Summary of changes in period");
+		Logger.debug("– Number of changed lines = " + numberOfChangedLinesInPeriod);
+		Logger.debug("– Number of changed files = " + periodSummary.size());
 	}
 
 	/**
-	 * Creates and configures a diff formatter
+	 * Generates a diff formatter
 	 *
 	 * @return the diff formatter
 	 */
@@ -267,7 +284,7 @@ public class ChangeDetector {
 	}
 
 	/**
-	 * Creates and configures a tree filter enforcing a whitelist of file types
+	 * Generates a tree filter enforcing a whitelist of file types
 	 *
 	 * @param fileTypeWhitelist the extensions of the only file types to consider (empty set means consider all)
 	 * @return a tree filter enforcing the whitelist of file types
