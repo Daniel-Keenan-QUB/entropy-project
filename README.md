@@ -32,5 +32,15 @@ There are seven modes in which the application can run:
 3. Record file entropy for each period and mark periods in which file was refactored
 4. Record file entropy for each period in which file was changed
 5. Record file entropy for each period in which file was changed and mark periods in which file was refactored
-6. Record percentage change in file entropy between periods in which the file was changed but not refactored
-7. Record percentage change in mean file entropy (across periods in which the file was changed but not refactored) before and after periods in which file was refactored
+6. Record percentage change in file entropy between periods in which file was changed but not refactored
+7. Record percentage change in mean file entropy (across periods in which file was changed but not refactored) before and after periods in which file was refactored
+
+### Filters
+
+The filters config file `filters-config.yaml` allows the files considered during analysis to be filtered by:
+
+1. specifying the only file types to include (e.g., `.java` files only)
+2. specifying the file path patterns to exclude (e.g., all paths containing `Test.java`)
+3. specifying the only refactoring types to include
+
+Simply modify the list of items under each of these filter groups in the file.
