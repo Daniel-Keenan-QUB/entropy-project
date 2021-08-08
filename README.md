@@ -1,6 +1,6 @@
 # CSC4006 | Research and Development Project
 
-This command-line tool measures the source code change entropy observed throughout the evolution of a Git repository.
+This command-line tool measures the source code change entropy observed throughout the evolution of a Git repository. It also detects refactorings applied to Java source files throughout the repository evolution.
 
 The project uses the Gradle build tool and is supported by a GitLab CI pipeline.
 
