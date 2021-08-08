@@ -41,5 +41,5 @@ test {
 }
 
 spotbugs {
-    excludeFilter = file("spotbugs-exclude.xml") as RegularFile
+    excludeFilter = file("spotbugs-exclude.xml")
 }
