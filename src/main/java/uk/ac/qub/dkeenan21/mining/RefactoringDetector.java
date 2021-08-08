@@ -33,7 +33,7 @@ public class RefactoringDetector {
 	 * @param startCommitId             the ID of the first commit in the period
 	 * @param endCommitId               the ID of the last commit in the period
 	 * @param refactoringTypesToInclude the only refactoring types (as named by RefactoringMiner) to consider
-	 * @return a map containing an entry for each refactoring type occurring in the period
+	 * @return a map containing an entry for each file refactored during the period
 	 * entries are of the form: [file path -> [refactoring type -> number of occurrences]]
 	 */
 	public Map<String, Map<String, Integer>> summariseRefactorings(String startCommitId, String endCommitId,
