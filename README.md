@@ -1,4 +1,4 @@
-# Change Entropy Investigation
+# Entropy Project
 
 This command-line tool mines the Git version history of a Java-based system to compute the source code change entropy over, and detect the refactorings applied within, each period (sequence of commits) of its evolution.
 
