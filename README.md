@@ -1,8 +1,8 @@
-# CSC4006 | Research and Development Project
+# Change Entropy Investigation
 
 This command-line tool mines the Git version history of a Java-based system to compute the source code change entropy over, and detect the refactorings applied within, each period (sequence of commits) of its evolution.
 
-The project uses the Gradle build tool and is supported by a GitLab CI pipeline.
+The project uses the Gradle build tool.
 
 ### How to Run
 
@@ -44,3 +44,4 @@ The application supports filtering of files to consider in its analysis. The fol
 * Refactoring types to include
 
 To customise filters, simply modify the `filters-config.yaml` file.
+ 
