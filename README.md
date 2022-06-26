@@ -8,14 +8,14 @@ The project uses the Gradle build tool.
 
 Obtain the application JAR file by doing one of the following:
 
-* Running `./gradlew shadow` in the project root to build the JAR file, which will be created at `build/libs/csc4006-project-1.0-SNAPSHOT-all.jar`
+* Running `./gradlew shadow` in the project root to build the JAR file, which will be created at `build/libs/entropy-project-1.0-SNAPSHOT-all.jar`
 
 * Downloading the JAR file as an artifact from a successful pipeline run on GitLab
 
 Run the application using a command such as:
 
 ```
-java -jar csc4006-project-1.0-SNAPSHOT-all.jar \
+java -jar build/libs/entropy-project-1.0-SNAPSHOT-all.jar \
    --repository-path "path/to/git/repository" \
    --period-length 100 \
    --mode 1

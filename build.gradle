@@ -1,7 +1,6 @@
 plugins {
     id "com.github.johnrengelman.shadow" version "7.0.0"
     id 'java'
-    id "com.github.spotbugs" version "4.7.2"
 }
 
 group 'uk.ac.qub.dkeenan21'
@@ -38,8 +37,4 @@ shadowJar {
 
 test {
     useJUnitPlatform()
-}
-
-spotbugs {
-    excludeFilter = file("spotbugs-exclude.xml")
 }
