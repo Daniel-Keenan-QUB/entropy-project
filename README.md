@@ -2,7 +2,7 @@
 
 This command-line tool mines the Git version history of a Java-based system to compute the source code change entropy over, and detect the refactorings applied within, each period (sequence of commits) of its evolution.
 
-The project uses the Gradle build tool.
+The project uses the Gradle build tool and requires Java to run.
 
 ### How to Run
 
@@ -10,9 +10,7 @@ Obtain the application JAR file by doing one of the following:
 
 * Running `./gradlew shadow` in the project root to build the JAR file, which will be created at `build/libs/entropy-project-1.0-SNAPSHOT-all.jar`
 
-* Downloading the JAR file as an artifact from a successful pipeline run on GitLab
-
-Run the application using a command such as:
+Run the application from the project root using a command such as:
 
 ```
 java -jar build/libs/entropy-project-1.0-SNAPSHOT-all.jar \
