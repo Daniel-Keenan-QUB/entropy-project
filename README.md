@@ -6,9 +6,7 @@ The project uses the Gradle build tool and requires Java to run.
 
 ### How to Run
 
-Obtain the application JAR file by doing one of the following:
-
-* Running `./gradlew shadow` in the project root to build the JAR file, which will be created at `build/libs/entropy-project-1.0-SNAPSHOT-all.jar`
+Run `./gradlew shadow` in the project root to build the JAR file, which will be created at `build/libs/entropy-project-1.0-SNAPSHOT-all.jar`
 
 Run the application from the project root using a command such as:
 
